@@ -1,0 +1,11 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+coverage/
+.DS_Store
+*.local
+*.log
+exports/
+private-data/
+
