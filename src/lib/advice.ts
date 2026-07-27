@@ -13,7 +13,7 @@ export function getRecoveryAdvice(
   if (!record) {
     return {
       title: '先建立今天的基準',
-      message: '輸入今天的活動與睡眠資料，Dashboard 才能提供一項具體行動。'
+      message: '等待 ChatGPT 匯入今天的活動與睡眠資料後，Dashboard 才能提供一項具體行動。'
     };
   }
 
@@ -58,4 +58,3 @@ export function getRecoveryAdvice(
     message: '今晚以恢復、補水和避免宵夜為主，毋須額外加操。'
   };
 }
-

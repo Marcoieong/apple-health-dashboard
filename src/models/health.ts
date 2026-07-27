@@ -15,7 +15,7 @@ export interface DailyHealthRecord {
   noSugaryDrink?: boolean;
   noLateNightMeal?: boolean;
   notes?: string;
-  source?: 'demo' | 'manual' | 'imported';
+  source?: 'demo' | 'chatgpt';
   createdAt: string;
   updatedAt: string;
 }
@@ -105,17 +105,3 @@ export interface MonthlySummary {
   nextPriorities: string[];
   records: DailyHealthRecord[];
 }
-
-export interface DataImportResult {
-  success: boolean;
-  imported: number;
-  skipped: number;
-  errors: string[];
-  records: DailyHealthRecord[];
-}
-
-export type HealthRecordInput = Omit<
-  DailyHealthRecord,
-  'id' | 'createdAt' | 'updatedAt' | 'source'
->;
-

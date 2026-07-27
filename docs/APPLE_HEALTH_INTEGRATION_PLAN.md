@@ -2,7 +2,7 @@
 
 ## 邊界
 
-第一階段沒有連接 Apple Health，也沒有即時或背景同步。Dashboard 只讀取使用者手動輸入或明確匯入的本機資料。
+第一階段沒有連接 Apple Health，也沒有即時或背景同步。Dashboard 採只讀模式，資料由 ChatGPT 整理及驗證後匯入；網站不接受手動輸入。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 
@@ -62,4 +62,3 @@ Apple Health 資料由 iOS 的 HealthKit 權限模型保護。HealthKit 是原�
 4. 只有在欄位和流程穩定後，才評估原生 iOS Companion App。
 
 這條路線成本低、資料流可見，也能先驗證真正需要自動化的指標。第一階段不會聲稱或模擬 Apple Health 即時同步。
-

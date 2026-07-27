@@ -1,20 +1,18 @@
 import {
   BarChart3,
   CalendarDays,
-  ClipboardPenLine,
   HeartPulse,
   Moon,
   Sun
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type AppView = 'today' | 'weekly' | 'monthly' | 'entry';
+export type AppView = 'today' | 'weekly' | 'monthly';
 
 const navigation: { id: AppView; label: string; icon: typeof HeartPulse }[] = [
   { id: 'today', label: '今日', icon: HeartPulse },
   { id: 'weekly', label: '每週', icon: BarChart3 },
-  { id: 'monthly', label: '每月', icon: CalendarDays },
-  { id: 'entry', label: '輸入', icon: ClipboardPenLine }
+  { id: 'monthly', label: '每月', icon: CalendarDays }
 ];
 
 interface AppShellProps {
@@ -63,8 +61,8 @@ export function AppShell({
         <div className="privacy-note">
           <span className="status-dot" aria-hidden="true" />
           <div>
-            <strong>僅儲存在此裝置</strong>
-            <span>沒有廣告、分析或雲端上傳</span>
+            <strong>ChatGPT 匯入</strong>
+            <span>Dashboard 只讀，沒有手動輸入</span>
           </div>
         </div>
       </aside>
@@ -72,11 +70,11 @@ export function AppShell({
       <div className="workspace">
         <header className="topbar">
           <div>
-            <span className="eyebrow">澳門 · 本機模式</span>
+            <span className="eyebrow">澳門 · ChatGPT 匯入</span>
             <h1>個人健康 Dashboard</h1>
           </div>
           <div className="topbar-actions">
-            {hasDemoData && <span className="demo-pill">Demo Data</span>}
+            {hasDemoData && <span className="demo-pill">ChatGPT 匯入 · Demo</span>}
             <button
               className="icon-button"
               type="button"
