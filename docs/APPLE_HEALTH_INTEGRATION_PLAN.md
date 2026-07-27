@@ -2,7 +2,7 @@
 
 ## 邊界
 
-第一階段沒有連接 Apple Health，也沒有即時或背景同步。Dashboard 採只讀模式，資料由 ChatGPT 整理及驗證後匯入；網站不接受手動輸入。
+第一階段沒有連接 Apple Health，也沒有即時或背景同步。Dashboard 接受本機手動輸入，亦可由使用者匯入 ChatGPT 整理及驗證後的 JSON；兩者均不代表已連接 HealthKit。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 
