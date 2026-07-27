@@ -1,4 +1,4 @@
-import { ArrowRight, Check, MoonStar, Sparkles } from 'lucide-react';
+import { Check, MoonStar, Sparkles } from 'lucide-react';
 import { healthTargets } from '../../data/healthTargets';
 import { getRecoveryAdvice } from '../../lib/advice';
 import { formatDateZh } from '../../lib/date';
@@ -17,10 +17,9 @@ const ratingLabels = {
 interface DailyDashboardProps {
   record: DailyHealthRecord;
   weeklyChange: number | null;
-  onEdit: () => void;
 }
 
-export function DailyDashboard({ record, weeklyChange, onEdit }: DailyDashboardProps) {
+export function DailyDashboard({ record, weeklyChange }: DailyDashboardProps) {
   const score = calculateDailyScore(record);
   const advice = getRecoveryAdvice(record);
   const stepsRemaining = Math.max(0, healthTargets.steps.minimum - (record.steps ?? 0));
@@ -46,9 +45,6 @@ export function DailyDashboard({ record, weeklyChange, onEdit }: DailyDashboardP
               <p className="eyebrow">今日狀態</p>
               <h2 id="today-title">{formatDateZh(record.date)}</h2>
             </div>
-            <button className="text-button" type="button" onClick={onEdit}>
-              編輯資料 <ArrowRight size={16} />
-            </button>
           </div>
           <div className="score-layout">
             <div
@@ -68,7 +64,7 @@ export function DailyDashboard({ record, weeklyChange, onEdit }: DailyDashboardP
               <h3>{ratingLabels[score.rating]}</h3>
               <p>{score.rating}</p>
               {!score.isComplete && (
-                <small>{score.missingFields.length} 項評分資料尚未輸入</small>
+                <small>{score.missingFields.length} 項評分資料尚未匯入</small>
               )}
             </div>
           </div>

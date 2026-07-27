@@ -1,45 +1,25 @@
 # 資料處理說明
 
-## 儲存格式
+## 只讀模式
 
-資料以 JSON envelope 儲存在 `localStorage`：
+Dashboard 沒有手動輸入、編輯、刪除、清除或檔案上載入口。React 介面只讀取由 ChatGPT 管理的資料來源，並產生今日、每週及每月分析。
 
-```json
-{
-  "schemaVersion": 1,
-  "records": []
-}
-```
+## ChatGPT 匯入流程
 
-storage key 為 `personal-health-dashboard:v1`。所有寫入集中在 `src/services/storage.ts`，並保留 deterministic migration placeholder 供未來 schema 升級。
+1. 使用者把 Apple 健康匯出或結構化紀錄交給 ChatGPT。
+2. ChatGPT 檢查日期、澳門時區、單位、數值範圍、缺失值及重複日期。
+3. 資料通過驗證後，才可轉成 `DailyHealthRecord`。
+4. 更新前必須確認發布位置符合資料私隱要求。
+5. Dashboard 重新建置、測試及發布，使用者不需要在網站操作輸入表單。
 
-## 資料生命週期
+## 公開網站限制
 
-1. 第一次開啟：若沒有既有 envelope，建立約 14 日 Demo Data。
-2. 新增／編輯：驗證表單後寫入同一 envelope；每個日期只容許一筆紀錄。
-3. 刪除：只移除選定紀錄。
-4. 清除全部：經瀏覽器確認後把 records 改為空陣列。
-5. 匯出 JSON：包含 schema version、匯出時間與紀錄。
-6. 匯出 CSV：供個人試算表分析。
-7. 匯入 JSON：逐筆驗證日期、非負數值與布林欄位，依日期去重；只要有有效紀錄，匯入清單會取代目前清單。執行前應先匯出備份。
+目前 `health.pui-pui.org` 由公開 GitHub Pages 提供。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此只可包含虛構 Demo Data。真實個人健康資料不可提交至公開 repository 或發布分支。
 
-## 錯誤及缺失資料
+在加入真實資料前，必須先採用有身份驗證的私人資料層，或其他經使用者確認的端對端私密方案。
 
-- 損壞的本機 envelope 會 fail closed，畫面顯示錯誤，不會默默改寫。
-- 無法解析或結構錯誤的匯入檔不會寫入。
+## 缺失資料
+
 - 欄位可留空；摘要與畫面以「—」表示缺失，不把缺失數值當成零。
-- 評分只對有提供的評分類別計分，結果同時列出缺失欄位及紀錄是否完整。
-
-## Git 與檔案
-
-Demo Data 可提交；真實資料不可提交。`.gitignore` 已排除：
-
-- `exports/`
-- `private-data/`
-- `*.health-export.json`
-- `*.health-export.csv`
-- 一般 `*.local` 與 log
-
-## 復原建議
-
-每週或在大量編輯前匯出 JSON。還原前保留目前備份，並先在獨立瀏覽器 profile 驗證匯入檔。第一階段沒有雲端版本歷史或復原站。
+- 評分只對已提供的評分類別計分，並列出缺失欄位。
+- Demo Data 必須在介面明確標示，不得表示為真實 Apple Health 紀錄。

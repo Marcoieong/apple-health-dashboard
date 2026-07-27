@@ -6,16 +6,16 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5191',
     locale: 'zh-HK',
     timezoneId: 'Asia/Macau',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: `${process.execPath} node_modules/vite/bin/vite.js --host 127.0.0.1`,
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: true,
+    command: `${process.execPath} node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5191`,
+    url: 'http://127.0.0.1:5191',
+    reuseExistingServer: false,
     timeout: 120_000
   },
   projects: [
