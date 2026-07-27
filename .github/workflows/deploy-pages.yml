@@ -32,6 +32,7 @@ jobs:
       - run: pnpm build
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+      - run: pnpm privacy:scan
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -47,4 +48,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-
