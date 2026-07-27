@@ -1,14 +1,17 @@
-import { Bot } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
-export function EmptyState() {
+export function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <section className="empty-state" aria-labelledby="empty-title">
       <span className="empty-icon" aria-hidden="true">
-        <Bot size={30} />
+        <Plus size={30} />
       </span>
-      <p className="eyebrow">只讀資料模式</p>
-      <h2 id="empty-title">等待 ChatGPT 匯入資料</h2>
-      <p>網站不提供手動輸入。資料由 ChatGPT 整理及驗證後匯入，今日、每週與每月分析會自動更新。</p>
+      <p className="eyebrow">本機資料</p>
+      <h2 id="empty-title">尚未有健康紀錄</h2>
+      <p>新增第一筆紀錄，或在數據輸入頁匯入由 ChatGPT 整理的 JSON 備份。</p>
+      <button className="primary-button" type="button" onClick={onAdd}>
+        <Plus size={18} /> 新增第一筆紀錄
+      </button>
     </section>
   );
 }
