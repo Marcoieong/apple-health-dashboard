@@ -21,9 +21,9 @@ pnpm build
 4. Build output directory：`dist`
 5. Node.js 版本：20 或以上。
 6. 不設定 `VITE_BASE_PATH`，使用預設 `/`。
-7. 部署後以 iPhone Safari 測試匯入、下載、深色模式與加入主畫面。
+7. 部署後以 iPhone Safari 測試三個只讀頁面、深色模式與加入主畫面。
 
-此 App 的健康資料不會因部署而上傳；每個網域及瀏覽器各自擁有獨立 localStorage。
+目前公開版本只包含虛構 Demo Data。真實個人健康資料不得加入公開部署；需先建立認證與私人資料層。
 
 ## GitHub Pages
 
@@ -43,7 +43,7 @@ pnpm build
 3. 選「加入主畫面」。
 4. 確認名稱「每日健康」後加入。
 
-基礎 PWA 可離線載入已快取的前端資源；localStorage 原有資料仍可讀取。它不會在背景同步 Apple Health。
+基礎 PWA 可離線載入已快取的前端資源。它不會在背景同步 Apple Health。
 
 ## 上線前檢查
 
@@ -51,8 +51,7 @@ pnpm build
 - `manifest.webmanifest` 與 service worker 可載入
 - iPhone 393×852 及 430×932 無橫向溢出
 - 主畫面 standalone 開啟
-- localStorage 新增與重整保存
-- JSON/CSV 下載與 JSON 匯入
-- 清楚顯示 Demo Data
+- 沒有輸入欄、編輯、刪除或檔案上載入口
+- 三個導覽頁為「今日／每週／每月」
+- 清楚顯示「ChatGPT 匯入 · Demo」
 - 沒有 analytics、廣告或真實健康資料進入 Git
-
