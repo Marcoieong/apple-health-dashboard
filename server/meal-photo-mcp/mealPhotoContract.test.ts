@@ -6,11 +6,11 @@ import type {
   RecordMealDependencies,
   RecordMealInput,
   StoredMediaAsset
-} from './contracts';
-import { recordMeal } from './ingest';
-import { toMealReadDto } from './publicDto';
-import { recordMealToolDescriptor } from './toolDescriptor';
-import { detectImageType, IngestError, verifyDownloadedPhoto } from './validation';
+} from './contracts.js';
+import { recordMeal } from './ingest.js';
+import { toMealReadDto } from './publicDto.js';
+import { recordMealToolDescriptor } from './toolDescriptor.js';
+import { detectImageType, IngestError, verifyDownloadedPhoto } from './validation.js';
 
 const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x01]);
 

@@ -6,13 +6,13 @@ import type {
   RecordMealInput,
   RecordMealResult,
   StoredMediaAsset
-} from './contracts';
+} from './contracts.js';
 import {
   IngestError,
   MAX_PHOTO_BYTES,
   validateRecordMealInput,
   verifyDownloadedPhoto
-} from './validation';
+} from './validation.js';
 
 const MASTER_RETENTION_DAYS = 30;
 

@@ -10,7 +10,7 @@
 - 沒有健康資料遙測
 - 沒有 Apple Health／HealthKit 連線
 - 沒有健康資料上傳或跨裝置同步
-- 沒有已部署的 ChatGPT MCP、OAuth 或私人圖片儲存服務
+- ChatGPT MCP 接入層預設鎖定；目前沒有已啟用的 OAuth、私人圖片儲存或真實資料寫入
 
 ## 使用者責任
 
@@ -20,7 +20,7 @@ Apple 健康匯出與其他健康檔案屬敏感個人資料。使用者應把�
 
 ## 食物照片私隱邊界
 
-規劃中的手機 ChatGPT 流程必須使用專用 OAuth scope、按擁有人隔離的資料庫與私人 object storage。短效下載 URL 不落盤、不寫 log；圖片先驗證及移除 EXIF/GPS，網站只取得受保護的縮圖／展示版本。私人 `/api/` 路徑不得進 PWA cache，JSON 回應應使用 `Cache-Control: private, no-store`。
+手機 ChatGPT 流程必須使用專用 OAuth scope、按擁有人隔離的資料庫與私人 object storage。現有 `/mcp` 接入層在缺少完整設定時 fail closed；即使 OAuth 已配置，私人 adapters 未啟用時亦不下載或保留照片。短效下載 URL 不落盤、不寫 log；圖片先驗證及移除 EXIF/GPS，網站只取得受保護的縮圖／展示版本。私人 `/api/` 路徑不得進 PWA cache，JSON 回應應使用 `Cache-Control: private, no-store`。
 
 收到的照片 master 初始建議保留 30 日後刪除；去除 metadata 的縮圖與展示版本保留至餐食或帳戶被刪除。這是尚未部署的框架政策，正式部署時仍須加入刪除工作、稽核與實機驗證。
 

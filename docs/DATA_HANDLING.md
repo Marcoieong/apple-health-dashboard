@@ -10,7 +10,7 @@
 2. ChatGPT 檢查日期、澳門時區、單位、數值範圍、缺失值及重複日期。
 3. 資料通過驗證後，轉成符合 `DailyHealthRecord` 的 JSON。
 4. 有身份驗證的私人服務顯示預覽與差異，經確認後才寫入私人資料來源。
-5. 網站在獲授權情況下只讀取資料。此流程目前尚未部署；公開版仍只展示 Demo Data。
+5. 網站在獲授權情況下只讀取資料。MCP transport 與 OAuth 驗證框架已建立，但身份服務及私人 storage adapters 尚未啟用；公開版仍只展示 Demo Data。
 
 ## 匯出、版本與遷移
 
@@ -25,7 +25,7 @@
 - 不把短效下載 URL、原始 ChatGPT file ID、物件儲存 key 或內容 hash 回傳至對話或網站。
 - 以使用者範圍的 idempotency key 及內容 hash 防止重試造成重複資料。
 - 網站只透過已認證的同源 API 讀取縮圖／展示版本，不提供原圖或直連 object storage。
-- 現有程式碼是可測試框架；正式手機流程要待 OAuth、私人儲存、HTTPS MCP endpoint 部署後才能使用。
+- 現有程式碼已包含可測試框架、HTTPS MCP endpoint 與 OAuth JWT 驗證；正式手機流程要待身份服務、私人儲存及圖片處理 adapters 配置後才能使用。
 
 完整 contract、schema、保留政策與實作階段見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
 

@@ -66,7 +66,7 @@ URL、ChatGPT file ID、hash、owner ID 和 object key 一律不得回傳。
 8. 網站以 `meal.read` scope 讀取餐食 DTO；圖片經同源認證 media route
    提供，不向瀏覽器揭露 object-storage URL。
 
-預計 transport：
+已建立的 transport：
 
 ```http
 POST /mcp
@@ -75,7 +75,11 @@ GET  /api/v1/meals?from=&to=&meal_type=&cursor=
 GET  /api/meals/{meal_id}/photos/{ordinal}/thumbnail
 ```
 
-`/mcp` 和 `/api/` 都屬尚待部署的私人服務，不由 GitHub Pages 提供。
+Vercel 部署提供 `/mcp`、protected-resource metadata 及只揭露布林 readiness
+的 `/api/chatgpt-status`。未配置完整 OAuth 環境時 `/mcp` 回傳鎖定狀態；
+配置 OAuth 後仍須通過 Bearer token 的 issuer、audience、signature、時間及
+`meal.write` scope 驗證。私人 storage adapters 未接通時，
+`record_meal` 只回傳安全的「尚未啟用」錯誤，不下載或保留照片。
 
 ## Metadata schema
 
@@ -138,16 +142,19 @@ GET  /api/meals/{meal_id}/photos/{ordinal}/thumbnail
 
 ## Codex 分步實作
 
-1. **本輪框架**：工具及 DTO contracts、接收核心、驗證／去重測試、資料庫
+1. **已完成框架**：工具及 DTO contracts、接收核心、驗證／去重測試、資料庫
    schema、只讀飲食日誌頁、public-bundle 私隱掃描。
-2. **私人服務 adapters**：MCP transport、OAuth、PostgreSQL transaction、
-   私人 object storage、圖片 codec、SSRF-safe downloader。
-3. **唯讀接駁**：`meal.read` API、BFF session、縮圖 media route，將前端
+2. **已完成鎖定接入層**：MCP Streamable HTTP transport、OAuth
+   protected-resource metadata、JWT／scope 驗證及 readiness endpoint。
+3. **私人服務 adapters**：PostgreSQL transaction、私人 object storage、
+   圖片 codec、SSRF-safe downloader及正式 OAuth 身份服務配置。
+4. **唯讀接駁**：`meal.read` API、BFF session、縮圖 media route，將前端
    demo data adapter 換成認證 API adapter。
-4. **Staging 驗收**：MCP Inspector contract test、權限及重試測試、iPhone
+5. **Staging 驗收**：MCP Inspector contract test、權限及重試測試、iPhone
    ChatGPT 實機傳相片、網站跨日／餐別展示。
-5. **Production**：設定 retention lifecycle、備份／刪除流程、監察失敗率，
+6. **Production**：設定 retention lifecycle、備份／刪除流程、監察失敗率，
    通過私隱掃描後才容許真實資料。
 
-第一階段只建立可測試框架，不代表已配置 OAuth、資料庫、storage 或把工具
-安裝到 ChatGPT；未完成第二至第四步前，真實相片不會離開 ChatGPT。
+接入層存在不代表已配置 OAuth、資料庫、storage 或把工具安裝到 ChatGPT；
+未完成第三至第五步前，真實相片不會離開 ChatGPT。具體配置及驗收命令見
+[ChatGPT 接入指南](CHATGPT_CONNECTION.md)。

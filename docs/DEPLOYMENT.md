@@ -25,7 +25,7 @@ pnpm privacy:scan
 7. 在 Domains 加入 `health.pui-pui.org`。
 8. DNS 只新增或更新 `health` 這個 host；不可改動 root、MX 或其他服務紀錄。
 
-先用 preview URL 在 iPhone 實機確認，再把已驗證版本 promote 至 production。`vercel.json` 已提供 SPA rewrite。
+先用 preview URL 在 iPhone 實機確認，再把已驗證版本 promote 至 production。`vercel.json` 已把 `/mcp` 與 OAuth metadata 導向 Vercel Functions，並對所有私人路徑設定 `Cache-Control: private, no-store`。
 
 目前公開版本只包含虛構 Demo Data。真實個人健康資料不得加入公開部署；需先建立認證與私人資料層。
 
@@ -55,9 +55,9 @@ Cloudflare Pages 可作後備，Build command 為 `pnpm build`，output director
 
 ## 私人食物照片服務
 
-公開 Pages 只部署前端框架；不能承載真實照片。手機 ChatGPT 上傳需要另外部署 HTTPS MCP／API 服務、OAuth、PostgreSQL 及私人 object storage，並把 frontend 的資料 adapter 指向已認證 API。
+Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備只部署前端，不能承載此 serverless endpoint 或真實照片。MCP 接入層預設鎖定，手機 ChatGPT 上傳仍須配置 OAuth、PostgreSQL、私人 object storage 及安全圖片處理 adapters。
 
-部署私人服務前最少要完成：
+允許真實資料前最少要完成：
 
 1. OAuth protected-resource metadata、`meal.write` 與 `meal.read` scope。
 2. owner mapping、row-level security 及跨帳戶負面測試。
@@ -66,7 +66,7 @@ Cloudflare Pages 可作後備，Build command 為 `pnpm build`，output director
 5. `Cache-Control`、CORS、CSP、速率限制、審計與敏感 log redaction。
 6. staging MCP 連接後，用真實手機 ChatGPT 驗證照片選取、tool invocation、重試去重及網站顯示。
 
-完整設計及未驗證假設見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
+環境變數、ChatGPT 連接方式及鎖定狀態檢查見 [ChatGPT 接入指南](CHATGPT_CONNECTION.md)。完整設計及未驗證假設見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
 
 ## 上線前檢查
 

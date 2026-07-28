@@ -16,6 +16,7 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "eslint.config.js",
+    "api/**/*.ts",
     "server/**/*.ts"
   ]
 }

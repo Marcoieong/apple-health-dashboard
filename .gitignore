@@ -16,3 +16,4 @@ private-data/
 *.health-export.csv
 .vercel
 .env*
+!.env.example

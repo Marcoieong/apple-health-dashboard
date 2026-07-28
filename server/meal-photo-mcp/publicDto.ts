@@ -2,7 +2,7 @@ import type {
   MealReadDto,
   PrivateMealRecord,
   StoredMediaAsset
-} from './contracts';
+} from './contracts.js';
 
 export function toMealReadDto(
   record: PrivateMealRecord,
