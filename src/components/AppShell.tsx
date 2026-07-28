@@ -1,7 +1,6 @@
 import {
   BarChart3,
   CalendarDays,
-  ClipboardPenLine,
   HeartPulse,
   Moon,
   Sun,
@@ -9,14 +8,13 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type AppView = 'today' | 'weekly' | 'monthly' | 'food-journal' | 'entry';
+export type AppView = 'today' | 'weekly' | 'monthly' | 'food-journal';
 
 const navigation: { id: AppView; label: string; icon: typeof HeartPulse }[] = [
   { id: 'today', label: '今日', icon: HeartPulse },
   { id: 'weekly', label: '每週', icon: BarChart3 },
   { id: 'monthly', label: '每月', icon: CalendarDays },
-  { id: 'food-journal', label: '飲食日誌', icon: Utensils },
-  { id: 'entry', label: '輸入', icon: ClipboardPenLine }
+  { id: 'food-journal', label: '飲食日誌', icon: Utensils }
 ];
 
 interface AppShellProps {
@@ -65,8 +63,8 @@ export function AppShell({
         <div className="privacy-note">
           <span className="status-dot" aria-hidden="true" />
           <div>
-            <strong>只儲存在本機</strong>
-            <span>可手動輸入或匯入 ChatGPT JSON</span>
+            <strong>唯讀 Dashboard</strong>
+            <span>不提供網頁人工輸入</span>
           </div>
         </div>
       </aside>
@@ -74,7 +72,7 @@ export function AppShell({
       <div className="workspace">
         <header className="topbar">
           <div>
-            <span className="eyebrow">澳門 · 本機健康紀錄</span>
+            <span className="eyebrow">澳門 · 唯讀健康紀錄</span>
             <h1>個人健康 Dashboard</h1>
           </div>
           <div className="topbar-actions">

@@ -12,19 +12,26 @@ pnpm privacy:scan
 
 輸出目錄為 `dist/`。本專案沒有 URL 子路由，因此重新整理不依賴伺服器 SPA fallback；service worker 與 manifest 由 Vite PWA plugin 產生。
 
-## Cloudflare Pages（推薦）
+## Vercel（目前選用）
 
-建議第一階段使用 Cloudflare Pages：根路徑設定簡單，preview deployment 易於先在 iPhone 測試，也不需為 repo 名稱調整 asset base。
+專案已連接 GitHub repository，Vercel 會為功能分支建立預覽部署。確認預覽後再發佈 production，正式自訂網域為 `health.pui-pui.org`。
 
-1. 在 Cloudflare Pages 連接 GitHub repo。
+1. Import GitHub repository。
 2. Framework preset 選 `Vite`。
 3. Build command：`pnpm build`
-4. Build output directory：`dist`
+4. Output directory：`dist`
 5. Node.js 版本：20 或以上。
 6. 不設定 `VITE_BASE_PATH`，使用預設 `/`。
-7. 部署後以 iPhone Safari 測試五個頁面、健康紀錄 CRUD、重新整理持久化、深色模式與加入主畫面。
+7. 在 Domains 加入 `health.pui-pui.org`。
+8. DNS 只新增或更新 `health` 這個 host；不可改動 root、MX 或其他服務紀錄。
+
+先用 preview URL 在 iPhone 實機確認，再把已驗證版本 promote 至 production。`vercel.json` 已提供 SPA rewrite。
 
 目前公開版本只包含虛構 Demo Data。真實個人健康資料不得加入公開部署；需先建立認證與私人資料層。
+
+## Cloudflare Pages（後備）
+
+Cloudflare Pages 可作後備，Build command 為 `pnpm build`，output directory 為 `dist`。`public/_redirects` 已包含 SPA fallback。
 
 ## GitHub Pages
 
@@ -67,9 +74,9 @@ pnpm privacy:scan
 - `manifest.webmanifest` 與 service worker 可載入
 - iPhone 393×852 及 430×932 無橫向溢出
 - 主畫面 standalone 開啟
-- 五個導覽頁為「今日／每週／每月／飲食日誌／輸入」
-- 可新增、編輯、刪除、匯入及匯出健康紀錄
-- 重整後本機資料仍存在，清除後維持空狀態
+- 四個導覽頁為「今日／每週／每月／飲食日誌」
+- 公開介面沒有新增、編輯、刪除、匯入、匯出或上傳控制
+- 重整後 Demo Data 仍可正常載入
 - 清楚顯示「Demo Data · 非真實資料」
 - 沒有 analytics、廣告或真實健康資料進入 Git
 - `/api/`、`/mcp` 及 `/.well-known/` 不被 PWA navigation fallback 或 runtime cache 接管

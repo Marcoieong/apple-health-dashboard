@@ -1,17 +1,14 @@
-import { Plus } from 'lucide-react';
+import { DatabaseZap } from 'lucide-react';
 
-export function EmptyState({ onAdd }: { onAdd: () => void }) {
+export function EmptyState() {
   return (
     <section className="empty-state" aria-labelledby="empty-title">
       <span className="empty-icon" aria-hidden="true">
-        <Plus size={30} />
+        <DatabaseZap size={30} />
       </span>
-      <p className="eyebrow">本機資料</p>
+      <p className="eyebrow">同步狀態</p>
       <h2 id="empty-title">尚未有健康紀錄</h2>
-      <p>新增第一筆紀錄，或在數據輸入頁匯入由 ChatGPT 整理的 JSON 備份。</p>
-      <button className="primary-button" type="button" onClick={onAdd}>
-        <Plus size={18} /> 新增第一筆紀錄
-      </button>
+      <p>健康紀錄將由私人 ChatGPT 流程導入；此網站不提供人工輸入。</p>
     </section>
   );
 }
