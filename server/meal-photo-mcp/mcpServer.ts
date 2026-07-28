@@ -31,7 +31,6 @@ export const recordMealInputSchema = z
 
 const recordMealOutputSchema = z
   .object({
-    entry_id: z.string(),
     local_date: z.string(),
     meal_type: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
     photo_count: z.number().int().min(1).max(4),

@@ -14,6 +14,6 @@ export default function handler(
 
   response.status(200).json({
     service: 'personal-health-dashboard-chatgpt-mcp',
-    ...getChatGptMcpReadiness()
+    ...getChatGptMcpReadiness(process.env, true)
   });
 }

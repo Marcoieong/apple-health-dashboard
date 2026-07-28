@@ -82,6 +82,9 @@ export async function verifyMcpAccessToken(
   if (!subject) {
     throw new Error('Access token has no subject.');
   }
+  if (subject !== config.allowedSubject) {
+    throw new Error('Access token subject is not the configured owner.');
+  }
 
   const scopes = extractScopes(verified.payload);
   if (!scopes.includes(MEAL_WRITE_SCOPE)) {

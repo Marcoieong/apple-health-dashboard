@@ -79,7 +79,6 @@ export interface PrivateMealRecord {
 }
 
 export interface RecordMealResult {
-  entry_id: string;
   local_date: string;
   meal_type: MealType;
   photo_count: number;
@@ -142,6 +141,14 @@ export interface PrivateMediaStore {
     masterBytes: Uint8Array;
     thumbnailBytes: Uint8Array;
     mimeType: SupportedImageType;
+  }): Promise<void>;
+  /**
+   * Best-effort rollback used when a concurrent database insert wins after
+   * this request uploaded the same content.
+   */
+  deleteSanitizedPair(input: {
+    masterObjectKey: string;
+    thumbnailObjectKey: string;
   }): Promise<void>;
 }
 

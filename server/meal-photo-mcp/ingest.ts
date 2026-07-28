@@ -33,7 +33,6 @@ function toResult(
   status: RecordMealResult['status']
 ): RecordMealResult {
   return {
-    entry_id: record.id,
     local_date: record.localDate,
     meal_type: record.mealType,
     photo_count: photoCount,

@@ -7,6 +7,14 @@ export interface ChatGptMcpRuntimeConfig {
   audience: string;
   jwksUri: URL;
   ownerHmacSecret: string;
+  allowedSubject: string;
+}
+
+export interface ChatGptMcpStorageConfig {
+  databaseUrl: string;
+  privateBlobToken: string;
+  ingestHmacSecret: string;
+  attachmentHosts: readonly string[];
 }
 
 export interface ChatGptMcpReadiness {
@@ -23,19 +31,24 @@ const requiredAuthVariables = [
   'CHATGPT_MCP_ISSUER',
   'CHATGPT_MCP_AUDIENCE',
   'CHATGPT_MCP_JWKS_URI',
-  'CHATGPT_MCP_OWNER_HMAC_SECRET'
+  'CHATGPT_MCP_OWNER_HMAC_SECRET',
+  'CHATGPT_MCP_ALLOWED_SUBJECT'
 ] as const;
 
 const requiredStorageVariables = [
-  'CHATGPT_MCP_DATABASE_URL',
-  'CHATGPT_MCP_PRIVATE_BLOB_TOKEN',
-  'CHATGPT_MCP_INGEST_HMAC_SECRET'
+  'BLOB_READ_WRITE_TOKEN',
+  'CHATGPT_MCP_INGEST_HMAC_SECRET',
+  'CHATGPT_MCP_ATTACHMENT_HOSTS'
 ] as const;
 
 const hasAll = (
   env: NodeJS.ProcessEnv,
   names: readonly string[]
 ): boolean => names.every((name) => Boolean(env[name]?.trim()));
+
+function getDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
+  return env.DATABASE_URL?.trim() || env.CHATGPT_MCP_DATABASE_URL?.trim();
+}
 
 function secureUrl(value: string | undefined, name: string): URL {
   if (!value) {
@@ -58,7 +71,8 @@ export function getChatGptMcpReadiness(
   ingestAdaptersImplemented = false
 ): ChatGptMcpReadiness {
   const authConfigured = hasAll(env, requiredAuthVariables);
-  const privateStorageConfigured = hasAll(env, requiredStorageVariables);
+  const privateStorageConfigured =
+    hasAll(env, requiredStorageVariables) && Boolean(getDatabaseUrl(env));
   const ready =
     authConfigured && privateStorageConfigured && ingestAdaptersImplemented;
 
@@ -90,6 +104,58 @@ export function loadChatGptMcpRuntimeConfig(
     issuer: env.CHATGPT_MCP_ISSUER as string,
     audience: env.CHATGPT_MCP_AUDIENCE as string,
     jwksUri: secureUrl(env.CHATGPT_MCP_JWKS_URI, 'CHATGPT_MCP_JWKS_URI'),
-    ownerHmacSecret: env.CHATGPT_MCP_OWNER_HMAC_SECRET as string
+    ownerHmacSecret: env.CHATGPT_MCP_OWNER_HMAC_SECRET as string,
+    allowedSubject: env.CHATGPT_MCP_ALLOWED_SUBJECT as string
+  };
+}
+
+function parseAttachmentHosts(value: string): string[] {
+  const hosts = value
+    .split(',')
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    hosts.length === 0 ||
+    hosts.some(
+      (host) =>
+        host.includes('/') ||
+        host.includes(':') ||
+        host.startsWith('.') ||
+        host.endsWith('.')
+    )
+  ) {
+    throw new Error('CHATGPT_MCP_ATTACHMENT_HOSTS is invalid.');
+  }
+  return [...new Set(hosts)];
+}
+
+export function loadChatGptMcpStorageConfig(
+  env: NodeJS.ProcessEnv = process.env
+): ChatGptMcpStorageConfig {
+  const databaseUrlValue = getDatabaseUrl(env);
+  if (!hasAll(env, requiredStorageVariables) || !databaseUrlValue) {
+    throw new Error('ChatGPT MCP private storage configuration is incomplete.');
+  }
+
+  let databaseUrl: URL;
+  try {
+    databaseUrl = new URL(databaseUrlValue);
+  } catch {
+    throw new Error('DATABASE_URL must be a valid PostgreSQL URL.');
+  }
+  if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
+    throw new Error('DATABASE_URL must use PostgreSQL over TLS.');
+  }
+  if (databaseUrl.searchParams.get('sslmode') === 'disable') {
+    throw new Error('DATABASE_URL must not disable TLS.');
+  }
+
+  return {
+    databaseUrl: databaseUrl.href,
+    privateBlobToken: env.BLOB_READ_WRITE_TOKEN as string,
+    ingestHmacSecret: env.CHATGPT_MCP_INGEST_HMAC_SECRET as string,
+    attachmentHosts: parseAttachmentHosts(
+      env.CHATGPT_MCP_ATTACHMENT_HOSTS as string
+    )
   };
 }

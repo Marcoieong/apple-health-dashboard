@@ -27,46 +27,51 @@ GET /api/chatgpt-status
 及 JWT access token 的身份服務。可選 Auth0 等成熟供應商；不要自行製作密碼
 系統，也不要用查詢參數或自訂 API key 代替 OAuth。
 
-身份服務需建立：
+身份服務已建立：
 
-- API audience：建議使用正式 MCP resource URL。
+- Auth0 tenant：`https://dev-05zm8suie07wtqx1.us.auth0.com/`。
+- API audience：`https://health.pui-pui.org/api/mcp`。
 - scope：`meal.write`。
 - 唯一使用者帳戶：以 `marco@pui-pui.org` 登入。
-- ChatGPT OAuth callback allowlist：
-  `https://chatgpt.com/connector/oauth/{callback_id}`。
+- OAuth 應用 Client ID：`tpc_gom9DiAg2QWUjsGrCMmqtd`（非秘密值）。
+- ChatGPT OAuth callback allowlist：只加入 ChatGPT 建立 connector 時顯示的
+  精確 callback URL。
 
-`callback_id` 只會在 ChatGPT 建立 connector 時出現；取得後再把精確 callback
-加入身份服務，不能預先用 wildcard 放行。
+取得 callback 後再加入 Auth0，不能預先用 wildcard 放行。Client Secret 只可
+在 Auth0 與 ChatGPT 的受保護欄位之間傳遞，不可寫入本機文件或 Git。
 
 ## Vercel 環境變數
 
 把 `.env.example` 的值加入 Vercel Preview 環境。不要把實際值提交至 Git：
 
 ```text
-CHATGPT_MCP_RESOURCE_URL=https://<preview-domain>/mcp
-CHATGPT_MCP_AUTHORIZATION_SERVER=https://<tenant>/
-CHATGPT_MCP_ISSUER=https://<tenant>/
-CHATGPT_MCP_AUDIENCE=https://<preview-domain>/mcp
-CHATGPT_MCP_JWKS_URI=https://<tenant>/.well-known/jwks.json
+CHATGPT_MCP_RESOURCE_URL=https://health.pui-pui.org/mcp
+CHATGPT_MCP_AUTHORIZATION_SERVER=https://dev-05zm8suie07wtqx1.us.auth0.com/
+CHATGPT_MCP_ISSUER=https://dev-05zm8suie07wtqx1.us.auth0.com/
+CHATGPT_MCP_AUDIENCE=https://health.pui-pui.org/api/mcp
+CHATGPT_MCP_JWKS_URI=https://dev-05zm8suie07wtqx1.us.auth0.com/.well-known/jwks.json
 CHATGPT_MCP_OWNER_HMAC_SECRET=<至少 32 bytes 隨機值>
+CHATGPT_MCP_ALLOWED_SUBJECT=<Auth0 中 marco@pui-pui.org 的精確 user_id>
 ```
 
 私人資料層接通後才加入：
 
 ```text
 CHATGPT_MCP_INGEST_HMAC_SECRET=<至少 32 bytes 隨機值>
-CHATGPT_MCP_DATABASE_URL=<私人 PostgreSQL URL>
-CHATGPT_MCP_PRIVATE_BLOB_TOKEN=<私人 object storage token>
+DATABASE_URL=<Neon 私人 PostgreSQL URL；Vercel integration 自動管理>
+BLOB_READ_WRITE_TOKEN=<Vercel private Blob token；Vercel 自動管理>
+CHATGPT_MCP_ATTACHMENT_HOSTS=<ChatGPT 附件下載 host allowlist>
 ```
 
-目前程式不會因環境變數存在就假裝 storage 已接通；必須把實際 adapters
-注入 MCP server 後，readiness 才可改為 `ready`。
+不要把 integration 自動建立的 token 複製到文件、Git 或公開前端。程式只在
+OAuth、單一帳戶限制、PostgreSQL、private Blob 及附件 host allowlist 全部
+設定後才把 readiness 改為 `ready`。
 
 ## ChatGPT 連接
 
 1. 先確認 `GET /api/chatgpt-status` 顯示 `authConfigured: true`。
 2. 在 ChatGPT 的 Apps／Connectors 開發設定新增 MCP server URL：
-   `https://<preview-domain>/mcp`。
+   `https://health.pui-pui.org/mcp`。
 3. 完成 OAuth 登入及同意 `meal.write`。
 4. 確認 ChatGPT 能看到 `record_meal`，而且工具標示為寫入、非破壞性及
    可重試。

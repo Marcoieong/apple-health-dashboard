@@ -3,14 +3,27 @@ import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   buildWwwAuthenticate,
+  createProductionRecordMealDependencies,
   createMealMcpServer,
   extractBearerToken,
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
+  loadChatGptMcpStorageConfig,
+  recordMeal,
   verifyMcpAccessToken
 } from '../server/meal-photo-mcp/index.js';
 
 type AuthenticatedVercelRequest = VercelRequest & { auth?: AuthInfo };
+let dependencies:
+  | ReturnType<typeof createProductionRecordMealDependencies>
+  | undefined;
+
+function getDependencies() {
+  dependencies ??= createProductionRecordMealDependencies(
+    loadChatGptMcpStorageConfig()
+  );
+  return dependencies;
+}
 
 function sendJson(
   response: VercelResponse,
@@ -35,7 +48,7 @@ export default async function handler(
     return;
   }
 
-  const readiness = getChatGptMcpReadiness();
+  const readiness = getChatGptMcpReadiness(process.env, true);
   if (!readiness.authConfigured) {
     sendJson(response, 503, {
       error: 'service_locked',
@@ -60,7 +73,17 @@ export default async function handler(
     return;
   }
 
-  const server = createMealMcpServer();
+  if (readiness.state !== 'ready') {
+    sendJson(response, 503, {
+      error: 'service_locked',
+      message: 'ChatGPT MCP private ingest is not fully configured.'
+    });
+    return;
+  }
+
+  const server = createMealMcpServer((input, auth) =>
+    recordMeal(input, auth, getDependencies())
+  );
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined
   });

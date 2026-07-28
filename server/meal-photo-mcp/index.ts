@@ -2,6 +2,7 @@ export * from './contracts.js';
 export * from './ingest.js';
 export * from './mcpServer.js';
 export * from './oauth.js';
+export * from './productionAdapters.js';
 export * from './publicDto.js';
 export * from './runtimeConfig.js';
 export * from './toolDescriptor.js';

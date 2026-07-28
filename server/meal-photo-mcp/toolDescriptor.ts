@@ -99,7 +99,6 @@ export const recordMealToolDescriptor = {
     type: 'object',
     additionalProperties: false,
     properties: {
-      entry_id: { type: 'string' },
       local_date: { type: 'string' },
       meal_type: {
         type: 'string',
@@ -113,7 +112,6 @@ export const recordMealToolDescriptor = {
       }
     },
     required: [
-      'entry_id',
       'local_date',
       'meal_type',
       'photo_count',

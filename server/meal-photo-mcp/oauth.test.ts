@@ -34,9 +34,10 @@ describe('ChatGPT MCP OAuth helpers', () => {
       resourceUrl: new URL('https://health.pui-pui.org/mcp'),
       authorizationServer: new URL('https://login.example.com/'),
       issuer: 'https://login.example.com/',
-      audience: 'https://health.pui-pui.org/mcp',
+      audience: 'https://health.pui-pui.org/api/mcp',
       jwksUri: new URL('https://login.example.com/jwks.json'),
-      ownerHmacSecret: 'test-secret'
+      ownerHmacSecret: 'test-secret',
+      allowedSubject: 'auth0|owner'
     };
 
     expect(buildWwwAuthenticate(config)).toBe(

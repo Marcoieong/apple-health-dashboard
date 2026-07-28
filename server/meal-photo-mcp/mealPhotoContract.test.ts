@@ -90,7 +90,8 @@ function createDependencies() {
     },
     mediaAssets,
     mediaStore: {
-      putSanitizedPair: vi.fn(async () => undefined)
+      putSanitizedPair: vi.fn(async () => undefined),
+      deleteSanitizedPair: vi.fn(async () => undefined)
     },
     meals,
     clock: {
@@ -213,13 +214,11 @@ describe('recordMeal security and idempotency', () => {
     const replay = await recordMeal(validInput, auth, dependencies);
 
     expect(first).toMatchObject({
-      entry_id: 'meal-1',
       status: 'recorded',
       photo_count: 1,
       reused_photo_count: 0
     });
     expect(replay).toMatchObject({
-      entry_id: 'meal-1',
       status: 'already_recorded',
       photo_count: 1
     });
