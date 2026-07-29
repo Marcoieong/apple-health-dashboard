@@ -29,11 +29,11 @@ test('公開 Dashboard 為唯讀，不顯示人工輸入控制', async ({ page }
   await page.reload();
 
   await expect(page.getByRole('heading', { name: '尚未有健康紀錄' })).toBeVisible();
-  await expect(page.getByText('健康紀錄將由私人 ChatGPT 流程導入')).toBeVisible();
+  await expect(page.getByText('健康紀錄將由私人 iPhone Shortcut 流程導入')).toBeVisible();
   await expect(page.getByRole('button', { name: /新增|輸入|匯入/ })).toHaveCount(0);
 });
 
-test('可讀取由私人 ChatGPT 流程寫入的紀錄', async ({ page }) => {
+test('可讀取由私人流程寫入的紀錄', async ({ page }) => {
   await page.evaluate((key) => {
     const now = new Date().toISOString();
     localStorage.setItem(key, JSON.stringify({
@@ -72,7 +72,64 @@ test('飲食日誌維持私人資料邊界', async ({ page }) => {
   await navigateTo(page, '飲食日誌');
   await expect(page.getByRole('heading', { name: '飲食日誌' })).toBeVisible();
   await expect(page.getByRole('img', { name: '示範餐點相片預留位置' })).toHaveCount(5);
-  await expect(page.getByText('私人相片尚未接入')).toBeVisible();
+  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
+  await expect(page.getByLabel('私人存取碼')).toHaveAttribute('type', 'password');
+  await expect(page.getByRole('button', { name: '載入私人紀錄' })).toBeVisible();
+});
+
+test('私人餐食解鎖只保留於當次頁面', async ({ page }) => {
+  await page.route('**/api/private/meals', async (route) => {
+    expect(route.request().headers().authorization).toBe('Bearer test-access-code');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        meals: [
+          {
+            id: 'opaque-meal-123',
+            localDate: '2030-01-02',
+            timezone: 'Asia/Macau',
+            mealType: 'dinner',
+            foodLabels: ['雞肉', '西蘭花'],
+            preparationMethods: ['清蒸'],
+            notes: 'Shortcut 測試紀錄',
+            source: 'shortcut',
+            photoCount: 1,
+            recordedAt: '2030-01-02T12:00:00.000Z',
+          },
+        ],
+      }),
+    });
+  });
+
+  await navigateTo(page, '飲食日誌');
+  await page.getByLabel('私人存取碼').fill('test-access-code');
+  await page.getByRole('button', { name: '載入私人紀錄' }).click();
+
+  await expect(page.getByText('私人紀錄已解鎖')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '雞肉、西蘭花' })).toBeVisible();
+  await expect(page.getByText('1 張 · 不在公開頁載入')).toBeVisible();
+  await expect(page.locator('.journal-meal-card img')).toHaveCount(0);
+  await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
+
+  const browserStorage = await page.evaluate(() => ({
+    local: JSON.stringify(localStorage),
+    session: JSON.stringify(sessionStorage),
+  }));
+  expect(browserStorage.local).not.toContain('test-access-code');
+  expect(browserStorage.session).not.toContain('test-access-code');
+
+  await page.getByRole('button', { name: '鎖定' }).click();
+  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '雞肉、西蘭花' })).toHaveCount(0);
+
+  await page.getByLabel('私人存取碼').fill('test-access-code');
+  await page.getByRole('button', { name: '載入私人紀錄' }).click();
+  await expect(page.getByText('私人紀錄已解鎖')).toBeVisible();
+  await page.reload();
+  await navigateTo(page, '飲食日誌');
+  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
 });
 
 test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {
