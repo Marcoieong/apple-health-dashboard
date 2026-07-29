@@ -1,6 +1,6 @@
 # 個人健康 Dashboard
 
-一個以澳門日常生活與 iPhone Safari 為優先的個人健康習慣 Dashboard。公開網站採唯讀模式：不提供人工輸入、檔案上傳或資料修改；資料導入預留給日後受保護的私人 ChatGPT 流程。網站負責計算每日 100 分健康分數，並顯示每日、每週、每月摘要及飲食照片日誌。
+一個以澳門日常生活與 iPhone Safari 為優先的個人健康習慣 Dashboard。公開網站採唯讀模式：不提供人工輸入、檔案上傳或資料修改。私人餐食紀錄由 iPhone Shortcut 經受保護 API 寫入；網站只有在當次頁面輸入存取碼後，才讀取私人餐食摘要。網站亦會計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
 
 > 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。現階段沒有直接連接 Apple Health；首次開啟的 14 日資料是虛構示例，清楚標示為 **Demo Data · 非真實資料**。
 
@@ -12,7 +12,9 @@
 - 飲食日誌：按澳門日期與餐別展示食物照片及種類，不估算卡路里或份量
 - 公開介面唯讀：不提供新增、編輯、刪除、檔案上傳或公開匯入
 - 資料服務預留：JSON 驗證、儲存與匯出函數保留供日後受保護整合使用
-- ChatGPT 導入：已建立標準 HTTPS MCP endpoint、OAuth token 驗證及 `record_meal` 工具；未配置身份服務與私人儲存前保持鎖定
+- iPhone Shortcut 導入：Bearer 驗證、Base64 圖片上傳、EXIF/GPS 清除、重試去重及私人儲存
+- 私人唯讀日誌：存取碼只留在當次 React 記憶體；重整、關閉頁面或按「鎖定」即清除
+- ChatGPT 導入預留：MCP/OAuth 接口保留，但不宣稱 Pro 帳戶已支援手機自訂 MCP 寫入
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
 - 基礎 PWA：manifest、service worker、standalone 顯示與離線開啟已建置內容
 
@@ -72,19 +74,19 @@ pnpm exec playwright install chromium
 3. 選「加入主畫面」。
 4. 從主畫面開啟即可使用 standalone 顯示。
 
-網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」和「飲食日誌」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。
+網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」和「飲食日誌」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。私人餐食的手機建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。
 
 ## 資料儲存與導入邊界
 
 - 目前公開網站只載入虛構 Demo Data，不提供清除、備份、還原或匯入控制。
 - 如需移除瀏覽器內的網站資料，可在 Safari 設定中清除該網站的資料。
 - storage service 仍保留 schema 驗證、版本遷移及匯入／匯出能力，但不會暴露在公開 UI。
-- 真實資料導入須等待有身份驗證的私人 ChatGPT 整合完成；不能把一般 ChatGPT 附件視為已自動同步。
-- 每天的食物照片以手機 ChatGPT 作主要入口；專用私人 MCP tool 取得照片後，才寫入私人服務。
-- Codex 負責建立、測試及維護這套服務，不是日常拍照上傳入口。
+- 真實餐食資料只可經受 Bearer 存取碼保護的 iPhone Shortcut API 寫入；不能把一般 ChatGPT 附件視為已自動同步。
+- Shortcut 直接送出壓縮後的 Base64 圖片，不傳外部圖片網址；伺服器會再次驗證格式並重新編碼以移除 EXIF/GPS。
+- Dashboard 解鎖後只讀取餐食標籤、日期、餐別、備註與相片張數，不向公開頁載入私人相片。
 - 公開部署不會在未確認私隱方案前放入真實個人健康資料。
 
-目前飲食照片部分已完成資料 contract、處理核心、資料庫 schema、唯讀展示、HTTPS MCP transport、OAuth JWT 驗證及鎖定狀態端點。若身份服務、資料庫及私人物件儲存尚未配置，endpoint 會 fail closed，不能寫入或保留照片。接駁步驟見 [ChatGPT 接入指南](docs/CHATGPT_CONNECTION.md)，完整設計見 [食物照片架構](docs/FOOD_PHOTO_ARCHITECTURE.md)、[資料處理說明](docs/DATA_HANDLING.md) 與 [隱私說明](docs/PRIVACY.md)。
+目前飲食照片部分已完成資料 contract、Shortcut 寫入端點、私人資料庫、私人物件儲存、圖片清理、唯讀摘要端點及 Dashboard 解鎖介面。缺少秘密或私人儲存設定時，端點會 fail closed。操作見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)；完整設計見 [食物照片架構](docs/FOOD_PHOTO_ARCHITECTURE.md)、[資料處理說明](docs/DATA_HANDLING.md) 與 [隱私說明](docs/PRIVACY.md)。
 
 ## 部署
 
@@ -93,13 +95,15 @@ pnpm exec playwright install chromium
 ## 已知限制
 
 - 未直接連接 Apple Health／HealthKit
-- `localStorage` 不會跨裝置同步，清除 Safari 網站資料也會刪除紀錄
+- 健康指標仍是 Demo Data；尚未由 Shortcut 或 Apple Health 自動同步
 - 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
-- ChatGPT MCP 接入層尚未配置正式 OAuth、私人資料庫及私人物件儲存，因此真實寫入仍保持鎖定
+- Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
+- 存取碼屬共享秘密；遺失或外洩時必須立即輪替
+- ChatGPT 自訂 MCP 寫入仍未作為正式手機入口
 - 沒有 AI 自動分析
 - PWA 離線只保證已快取介面可開啟；私人 `/api/` 資料明確不進 service worker cache
 - 月度比較只依賴可讀取的紀錄；缺失欄位會以「—」顯示
 
 ## 第二階段
 
-下一階段只完成一件事：配置正式 OAuth 身份服務及私人儲存 adapters，在 staging 以 iPhone ChatGPT 完成一餐端到端寫入、重試去重與刪除驗證。驗收後才考慮把網站由 Demo adapter 切到已認證唯讀 API。Apple Health 方案比較見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
+下一階段只完成一件事：在 iPhone 實機建立 Shortcut，寫入一餐測試紀錄並確認 Dashboard 私人唯讀顯示、重試去重及鎖定行為。Apple Health 方案比較見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。

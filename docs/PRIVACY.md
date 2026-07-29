@@ -2,27 +2,29 @@
 
 ## 目前資料流
 
-個人健康 Dashboard 是公開的純前端唯讀應用。公開介面不提供人工輸入、匯入、上傳或修改健康紀錄；目前只載入清楚標示的虛構 Demo Data，網站沒有健康資料後端。
+個人健康 Dashboard 的公開介面是唯讀應用，不提供人工輸入、匯入、上傳或修改健康紀錄；未解鎖時只載入清楚標示的虛構 Demo Data。私人餐食資料另存於受保護資料庫與私人物件儲存，不會隨公開網站程式碼發布。
 
 - 沒有帳戶系統
 - 沒有分析追蹤工具
 - 沒有廣告
 - 沒有健康資料遙測
 - 沒有 Apple Health／HealthKit 連線
-- 沒有健康資料上傳或跨裝置同步
-- ChatGPT MCP 接入層預設鎖定；目前沒有已啟用的 OAuth、私人圖片儲存或真實資料寫入
+- 沒有 Apple Health 指標上傳或自動跨裝置同步
+- 私人餐食只可由持有 Shortcut 存取碼的人寫入或讀取摘要
 
 ## 使用者責任
 
 Apple 健康匯出與其他健康檔案屬敏感個人資料。使用者應把檔案存放在受密碼、裝置鎖或加密保護的位置，並避免傳送至不受信任服務。未建立登入及私人資料後端前，不可把真實健康紀錄提交到公開 GitHub repository 或任何公開部署。
 
-本機儲存不等於加密：能解鎖裝置及使用該 Safari profile 的人可能看到該網站資料。清除 Safari 網站資料、使用私人瀏覽或更換網域會令本機網站資料消失。公開版沒有備份或匯出控制。
+Shortcut 存取碼屬敏感秘密，不應放入截圖、訊息、Git、公開文件或其他人可讀取的捷徑。若裝置遺失或存取碼懷疑外洩，應立即在 Vercel 輪替。Dashboard 不把存取碼或私人 API 回應寫入 `localStorage`、`sessionStorage` 或 PWA cache；重整或關閉頁面後需要重新輸入。
 
 ## 食物照片私隱邊界
 
-手機 ChatGPT 流程必須使用專用 OAuth scope、按擁有人隔離的資料庫與私人 object storage。現有 `/mcp` 接入層在缺少完整設定時 fail closed；即使 OAuth 已配置，私人 adapters 未啟用時亦不下載或保留照片。短效下載 URL 不落盤、不寫 log；圖片先驗證及移除 EXIF/GPS，網站只取得受保護的縮圖／展示版本。私人 `/api/` 路徑不得進 PWA cache，JSON 回應應使用 `Cache-Control: private, no-store`。
+手機入口是專用 iPhone Shortcut。它把 1–4 張 JPEG、PNG 或 WebP 圖片直接編碼成 Base64，連同日期、餐別及標籤送到同源 HTTPS API；不接受外部照片網址。伺服器會在驗證 Bearer 存取碼後才解析及儲存，並重新編碼圖片以移除 EXIF/GPS。資料庫以固定私人擁有人 ID 隔離；圖片放在私人物件儲存。
 
-收到的照片 master 初始建議保留 30 日後刪除；去除 metadata 的縮圖與展示版本保留至餐食或帳戶被刪除。這是尚未部署的框架政策，正式部署時仍須加入刪除工作、稽核與實機驗證。
+Dashboard 的私人 API 只回傳餐食日期、餐別、標籤、做法、備註、相片張數及不透明 ID，不回傳資料庫 ID、內容 hash、object key 或圖片本身。所有私人 API 使用 `Cache-Control: private, no-store`，亦不進 PWA cache。伺服器不得記錄存取碼、Base64 圖片或健康內容到 console。
+
+清理後的 master 設定 30 日刪除期限；縮圖保留至餐食被刪除。自動刪除工作及使用者自助刪除仍待後續補充，因此現階段不要提交不希望長期留存的照片。
 
 ## Demo Data
 
