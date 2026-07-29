@@ -14,7 +14,8 @@ const THEME_KEY = 'personal-health-dashboard:theme';
 
 export default function App() {
   const { records } = useHealthRecords();
-  const { entries: foodJournalEntries } = useFoodJournal();
+  const foodJournal = useFoodJournal();
+  const { entries: foodJournalEntries } = foodJournal;
   const [view, setView] = useState<AppView>('today');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY);
@@ -40,7 +41,16 @@ export default function App() {
 
   let content;
   if (view === 'food-journal') {
-    content = <FoodJournal entries={foodJournalEntries} />;
+    content = (
+      <FoodJournal
+        entries={foodJournal.entries}
+        mode={foodJournal.mode}
+        status={foodJournal.status}
+        error={foodJournal.error}
+        unlock={foodJournal.unlock}
+        lock={foodJournal.lock}
+      />
+    );
   } else if (!records.length) {
     content = <EmptyState />;
   } else if (view === 'today' && today) {

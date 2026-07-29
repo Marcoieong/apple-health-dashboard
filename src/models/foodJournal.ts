@@ -17,7 +17,8 @@ export type FoodPhoto = FoodPhotoPlaceholder | FoodPhotoThumbnail;
 
 export interface FoodJournalEntry {
   id: string;
-  occurredAt: string;
+  occurredAt?: string;
+  recordedAt?: string;
   localDate: string;
   timezone: string;
   mealType: MealType;
@@ -25,7 +26,8 @@ export interface FoodJournalEntry {
   cookingMethods?: string[];
   notes?: string;
   photo: FoodPhoto;
-  source: 'demo' | 'chatgpt';
+  privatePhotoCount?: number;
+  source: 'demo' | 'chatgpt' | 'shortcut';
 }
 
 export const mealTypeLabels: Record<MealType, string> = {

@@ -292,7 +292,7 @@ function mapMeal(row: Row): PrivateMealRecord {
     ownerId: asString(row.owner_id),
     idempotencyKeyHash: asString(row.idempotency_key_hash),
     requestDigest: asString(row.request_digest),
-    source: 'chatgpt',
+    source: asString(row.source) as PrivateMealRecord['source'],
     localDate: asString(row.local_date).slice(0, 10),
     timezone: asString(row.timezone),
     mealType: asString(row.meal_type) as PrivateMealRecord['mealType'],
@@ -401,7 +401,7 @@ class NeonMediaAssetRepository implements MediaAssetRepository {
 const MEAL_SELECT = `
   select
     me.id, me.owner_id, ir.idempotency_key_hash, ir.request_digest,
-    me.local_date::text as local_date, me.timezone, me.meal_type,
+    me.local_date::text as local_date, me.timezone, me.meal_type, me.source,
     me.food_labels, me.preparation_methods, me.notes, me.created_at::text,
     coalesce(
       json_agg(mp.media_asset_id::text order by mp.ordinal)
@@ -465,10 +465,10 @@ class NeonMealRepository implements MealRepository {
              preparation_methods, notes, source, created_at, updated_at
            )
            select $1, $2, $3::date, $4, $5, $6::jsonb, $7::jsonb, $8,
-                  'chatgpt', $9::timestamptz, $9::timestamptz
+                  $9, $10::timestamptz, $10::timestamptz
            where exists (
              select 1 from ingest_requests
-             where id = $10 and owner_id = $2 and status = 'processing'
+             where id = $11 and owner_id = $2 and status = 'processing'
            )`,
           [
             mealId,
@@ -479,6 +479,7 @@ class NeonMealRepository implements MealRepository {
             JSON.stringify(record.foodLabels),
             JSON.stringify(record.preparationMethods),
             record.notes ?? null,
+            record.source,
             record.createdAt,
             requestId
           ]

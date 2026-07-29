@@ -35,6 +35,6 @@ export function toMealReadDto(
         }
       ];
     }),
-    source: 'chatgpt'
+    source: record.source
   };
 }

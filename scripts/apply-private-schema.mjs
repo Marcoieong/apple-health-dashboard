@@ -9,16 +9,6 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL is required.');
 }
 
-const schemaPath = fileURLToPath(
-  new URL('../server/meal-photo-mcp/schema.sql', import.meta.url)
-);
-const schema = await readFile(schemaPath, 'utf8');
-const statements = schema
-  .replace(/^\s*--.*$/gm, '')
-  .split(';')
-  .map((statement) => statement.trim())
-  .filter(Boolean);
-
 const sql = neon(databaseUrl);
 await sql.query(`
   create table if not exists private_schema_migrations (
@@ -27,21 +17,45 @@ await sql.query(`
   )
 `);
 
-const version = 'meal-photo-v1';
-const existing = await sql.query(
-  'select version from private_schema_migrations where version = $1',
-  [version]
-);
+const migrations = [
+  {
+    version: 'meal-photo-v1',
+    url: new URL('../server/meal-photo-mcp/schema.sql', import.meta.url)
+  },
+  {
+    version: 'meal-photo-v2-shortcut',
+    url: new URL(
+      '../server/meal-photo-mcp/migrations/meal-photo-v2-shortcut.sql',
+      import.meta.url
+    )
+  }
+];
 
-if (existing.length === 0) {
+for (const migration of migrations) {
+  const existing = await sql.query(
+    'select version from private_schema_migrations where version = $1',
+    [migration.version]
+  );
+  if (existing.length > 0) {
+    process.stdout.write(
+      `Private schema ${migration.version} is already applied.\n`
+    );
+    continue;
+  }
+
+  const source = await readFile(fileURLToPath(migration.url), 'utf8');
+  const statements = source
+    .replace(/^\s*--.*$/gm, '')
+    .split(';')
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+
   await sql.transaction((transaction) => [
     ...statements.map((statement) => transaction.query(statement)),
     transaction.query(
       'insert into private_schema_migrations (version) values ($1)',
-      [version]
+      [migration.version]
     )
   ]);
-  process.stdout.write(`Applied private schema ${version}.\n`);
-} else {
-  process.stdout.write(`Private schema ${version} is already applied.\n`);
+  process.stdout.write(`Applied private schema ${migration.version}.\n`);
 }

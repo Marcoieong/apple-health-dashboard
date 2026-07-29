@@ -16,7 +16,9 @@ const mealTypeOrder: Record<MealType, number> = {
 function compareEntries(left: FoodJournalEntry, right: FoodJournalEntry) {
   return (
     mealTypeOrder[left.mealType] - mealTypeOrder[right.mealType] ||
-    left.occurredAt.localeCompare(right.occurredAt)
+    (left.occurredAt ?? left.recordedAt ?? '').localeCompare(
+      right.occurredAt ?? right.recordedAt ?? ''
+    )
   );
 }
 
@@ -50,11 +52,13 @@ export function formatFoodJournalDate(date: string, today: string) {
   return formatted;
 }
 
-export function formatMealTime(entry: FoodJournalEntry) {
+export function formatMealTime(entry: FoodJournalEntry): string | undefined {
+  const timestamp = entry.occurredAt ?? entry.recordedAt;
+  if (!timestamp) return undefined;
   return new Intl.DateTimeFormat('zh-Hant-MO', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
     timeZone: entry.timezone
-  }).format(new Date(entry.occurredAt));
+  }).format(new Date(timestamp));
 }

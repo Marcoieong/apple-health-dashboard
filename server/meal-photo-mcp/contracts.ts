@@ -3,6 +3,7 @@ export const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] a
 
 export type MealType = (typeof MEAL_TYPES)[number];
 export type SupportedImageType = (typeof SUPPORTED_IMAGE_TYPES)[number];
+export type MealSource = 'chatgpt' | 'shortcut';
 
 /**
  * Shape supplied by ChatGPT for a field declared in
@@ -67,7 +68,7 @@ export interface PrivateMealRecord {
   ownerId: string;
   idempotencyKeyHash: string;
   requestDigest: string;
-  source: 'chatgpt';
+  source: MealSource;
   localDate: string;
   timezone: string;
   mealType: MealType;
@@ -100,7 +101,7 @@ export interface MealReadDto {
     height: number;
     alt: string;
   }>;
-  source: 'chatgpt';
+  source: MealSource;
 }
 
 export interface PhotoDownloader {

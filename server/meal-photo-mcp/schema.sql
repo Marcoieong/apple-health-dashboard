@@ -16,7 +16,7 @@ create table meal_entries (
     check (jsonb_typeof(preparation_methods) = 'array'),
   notes text,
   source text not null default 'chatgpt'
-    check (source = 'chatgpt'),
+    check (source in ('chatgpt', 'shortcut')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

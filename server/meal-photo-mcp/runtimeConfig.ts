@@ -10,10 +10,13 @@ export interface ChatGptMcpRuntimeConfig {
   allowedSubject: string;
 }
 
-export interface ChatGptMcpStorageConfig {
+export interface PrivateMealStorageConfig {
   databaseUrl: string;
   privateBlobToken: string;
   ingestHmacSecret: string;
+}
+
+export interface ChatGptMcpStorageConfig extends PrivateMealStorageConfig {
   attachmentHosts: readonly string[];
 }
 
@@ -35,9 +38,13 @@ const requiredAuthVariables = [
   'CHATGPT_MCP_ALLOWED_SUBJECT'
 ] as const;
 
-const requiredStorageVariables = [
+const requiredPrivateStorageVariables = [
   'BLOB_READ_WRITE_TOKEN',
-  'CHATGPT_MCP_INGEST_HMAC_SECRET',
+  'CHATGPT_MCP_INGEST_HMAC_SECRET'
+] as const;
+
+const requiredChatGptStorageVariables = [
+  ...requiredPrivateStorageVariables,
   'CHATGPT_MCP_ATTACHMENT_HOSTS'
 ] as const;
 
@@ -72,7 +79,8 @@ export function getChatGptMcpReadiness(
 ): ChatGptMcpReadiness {
   const authConfigured = hasAll(env, requiredAuthVariables);
   const privateStorageConfigured =
-    hasAll(env, requiredStorageVariables) && Boolean(getDatabaseUrl(env));
+    hasAll(env, requiredChatGptStorageVariables) &&
+    Boolean(getDatabaseUrl(env));
   const ready =
     authConfigured && privateStorageConfigured && ingestAdaptersImplemented;
 
@@ -132,9 +140,21 @@ function parseAttachmentHosts(value: string): string[] {
 export function loadChatGptMcpStorageConfig(
   env: NodeJS.ProcessEnv = process.env
 ): ChatGptMcpStorageConfig {
+  if (!env.CHATGPT_MCP_ATTACHMENT_HOSTS?.trim()) {
+    throw new Error('CHATGPT_MCP_ATTACHMENT_HOSTS is required.');
+  }
+  return {
+    ...loadPrivateMealStorageConfig(env),
+    attachmentHosts: parseAttachmentHosts(env.CHATGPT_MCP_ATTACHMENT_HOSTS)
+  };
+}
+
+export function loadPrivateMealStorageConfig(
+  env: NodeJS.ProcessEnv = process.env
+): PrivateMealStorageConfig {
   const databaseUrlValue = getDatabaseUrl(env);
-  if (!hasAll(env, requiredStorageVariables) || !databaseUrlValue) {
-    throw new Error('ChatGPT MCP private storage configuration is incomplete.');
+  if (!hasAll(env, requiredPrivateStorageVariables) || !databaseUrlValue) {
+    throw new Error('Private meal storage configuration is incomplete.');
   }
 
   let databaseUrl: URL;
@@ -153,9 +173,6 @@ export function loadChatGptMcpStorageConfig(
   return {
     databaseUrl: databaseUrl.href,
     privateBlobToken: env.BLOB_READ_WRITE_TOKEN as string,
-    ingestHmacSecret: env.CHATGPT_MCP_INGEST_HMAC_SECRET as string,
-    attachmentHosts: parseAttachmentHosts(
-      env.CHATGPT_MCP_ATTACHMENT_HOSTS as string
-    )
+    ingestHmacSecret: env.CHATGPT_MCP_INGEST_HMAC_SECRET as string
   };
 }
