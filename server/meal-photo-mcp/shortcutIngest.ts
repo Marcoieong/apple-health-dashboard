@@ -43,6 +43,41 @@ interface DecodedPhoto {
   contentSha256: string;
 }
 
+function hasValidClientRequestId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.trim().length >= 8 &&
+    value.length <= 128
+  );
+}
+
+function fallbackClientRequestId(input: ShortcutMealInput): string {
+  const hash = createHash('sha256');
+  hash.update('shortcut-fallback-v1\0');
+  hash.update(
+    JSON.stringify({
+      localDate: input.local_date,
+      timezone: input.timezone,
+      mealType: input.meal_type,
+      foodLabels: input.food_labels ?? [],
+      preparationMethods: input.preparation_methods ?? [],
+      notes: input.notes ?? null
+    })
+  );
+
+  for (const photo of input.photos) {
+    hash.update('\0photo\0');
+    hash.update(
+      photo && typeof photo === 'object' &&
+          typeof photo.data_base64 === 'string'
+        ? photo.data_base64.replace(/\s/g, '')
+        : 'invalid-photo'
+    );
+  }
+
+  return `shortcut-fallback-${hash.digest('hex')}`;
+}
+
 const datePlusDays = (date: Date, days: number) =>
   new Date(date.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -87,15 +122,27 @@ export function parseShortcutMealInput(value: unknown): {
   if (!value || typeof value !== 'object') {
     throw new IngestError('Meal data is invalid.', 'invalid_input');
   }
-  const input = value as ShortcutMealInput;
+  const receivedInput = value as ShortcutMealInput;
 
   if (
-    !Array.isArray(input.photos) ||
-    input.photos.length < 1 ||
-    input.photos.length > MAX_PHOTOS_PER_MEAL
+    !Array.isArray(receivedInput.photos) ||
+    receivedInput.photos.length < 1 ||
+    receivedInput.photos.length > MAX_PHOTOS_PER_MEAL
   ) {
     throw new IngestError('A meal must contain one to four photos.', 'invalid_input');
   }
+  // This endpoint is separately protected by the private Shortcut bearer token.
+  // Older iOS Shortcut copies can serialize a Date magic variable instead of the
+  // intended request-id text. Derive a stable, payload-bound id for those copies
+  // without relaxing the shared ChatGPT/MCP input validation contract.
+  const input: ShortcutMealInput = {
+    ...receivedInput,
+    client_request_id: hasValidClientRequestId(
+      receivedInput.client_request_id
+    )
+      ? receivedInput.client_request_id
+      : fallbackClientRequestId(receivedInput)
+  };
   const validationInput = asRecordMealInput(input);
   validateRecordMealInput(validationInput);
 

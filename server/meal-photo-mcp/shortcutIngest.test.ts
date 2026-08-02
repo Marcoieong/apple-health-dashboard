@@ -103,6 +103,23 @@ describe('Shortcut meal parsing', () => {
     expect(parsed.decodedPhotos[0].mimeType).toBe('image/jpeg');
   });
 
+  it('derives a stable request id when an older Shortcut sends a Date value', () => {
+    const legacyInput = {
+      ...validInput,
+      client_request_id: { date: '2026-07-29T12:00:00.000Z' }
+    } as unknown as ShortcutMealInput;
+
+    const first = parseShortcutMealInput(legacyInput);
+    const second = parseShortcutMealInput(legacyInput);
+
+    expect(first.input.client_request_id).toMatch(
+      /^shortcut-fallback-[a-f0-9]{64}$/
+    );
+    expect(second.input.client_request_id).toBe(
+      first.input.client_request_id
+    );
+  });
+
   it('rejects missing photos, malformed Base64 and MIME mismatches', () => {
     expect(() =>
       parseShortcutMealInput({ ...validInput, photos: [] })
@@ -148,6 +165,28 @@ describe('Shortcut meal ingest', () => {
     expect(dependencies.downloader.download).not.toHaveBeenCalled();
     expect(dependencies.sanitizer.sanitize).toHaveBeenCalledTimes(1);
     expect(dependencies.mediaStore.putSanitizedPair).toHaveBeenCalledTimes(1);
+  });
+
+  it('replays a legacy Shortcut payload with an invalid request id safely', async () => {
+    const { dependencies } = createDependencies();
+    const legacyInput = {
+      ...validInput,
+      client_request_id: '日期'
+    } as ShortcutMealInput;
+
+    const first = await recordShortcutMeal(
+      legacyInput,
+      'private-owner',
+      dependencies
+    );
+    const replay = await recordShortcutMeal(
+      legacyInput,
+      'private-owner',
+      dependencies
+    );
+
+    expect(first.status).toBe('recorded');
+    expect(replay.status).toBe('already_recorded');
   });
 
   it('rejects reuse of a request id for different meal data', async () => {
