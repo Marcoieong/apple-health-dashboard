@@ -38,6 +38,25 @@ function errorStatus(error: IngestError): number {
   }
 }
 
+const ingestDiagnosticReasons = new Map<string, string>([
+  ['Meal data is invalid.', 'meal_object'],
+  ['A meal must contain one to four photos.', 'photos_array'],
+  ['Idempotency key is invalid.', 'request_id'],
+  ['Meal date must use YYYY-MM-DD.', 'local_date'],
+  ['Timezone or meal type is invalid.', 'timezone_or_meal_type'],
+  ['Food labels are invalid.', 'food_labels'],
+  ['Preparation methods are invalid.', 'preparation_methods'],
+  ['Meal note is too long.', 'notes'],
+  ['Photo data is invalid.', 'photo_data_type'],
+  ['Photo data is not valid Base64.', 'photo_base64'],
+  ['Photo filename is unsafe.', 'photo_file_name'],
+  ['Photo MIME type is invalid.', 'photo_mime_type']
+]);
+
+function ingestDiagnosticReason(error: IngestError): string {
+  return ingestDiagnosticReasons.get(error.message) ?? 'other';
+}
+
 export default async function handler(
   request: VercelRequest,
   response: VercelResponse
@@ -74,8 +93,16 @@ export default async function handler(
     response.status(result.status === 'recorded' ? 201 : 200).json(result);
   } catch (error) {
     if (error instanceof IngestError) {
+      const diagnostic = ingestDiagnosticReason(error);
+      // Do not log request bodies, authorization headers, image bytes, labels,
+      // notes, or other private health data. This fixed code is safe to retain.
+      console.warn('shortcut_ingest_rejected', {
+        code: error.code,
+        diagnostic
+      });
       response.status(errorStatus(error)).json({
         error: error.code,
+        diagnostic,
         message: error.message
       });
       return;

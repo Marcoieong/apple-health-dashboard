@@ -99,10 +99,20 @@ function decodeBase64(value: unknown): Uint8Array {
   if (typeof value !== 'string') {
     throw new IngestError('Photo data is invalid.', 'invalid_input');
   }
-  const normalized = value.replace(/\s/g, '');
+  // Shortcuts normally emits plain padded Base64, but some iOS versions and
+  // actions serialize it as a data URL, omit trailing padding, or use the
+  // URL-safe alphabet. All of those forms represent the same image bytes.
+  const withoutDataUrl = value.replace(
+    /^data:image\/(?:jpeg|jpg|png|webp);base64,/i,
+    ''
+  );
+  const compact = withoutDataUrl.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+  const remainder = compact.length % 4;
+  const normalized =
+    remainder === 2 ? `${compact}==` : remainder === 3 ? `${compact}=` : compact;
   if (
     normalized.length === 0 ||
-    normalized.length % 4 !== 0 ||
+    remainder === 1 ||
     !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)
   ) {
     throw new IngestError('Photo data is not valid Base64.', 'invalid_input');

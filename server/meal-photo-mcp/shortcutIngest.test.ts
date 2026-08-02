@@ -103,6 +103,19 @@ describe('Shortcut meal parsing', () => {
     expect(parsed.decodedPhotos[0].mimeType).toBe('image/jpeg');
   });
 
+  it('accepts common iPhone Shortcut Base64 variants', () => {
+    const unpadded = jpegBase64.replace(/=+$/, '');
+    const dataUrl = `data:image/jpeg;base64,${unpadded}`;
+
+    const parsed = parseShortcutMealInput({
+      ...validInput,
+      photos: [{ data_base64: dataUrl, mime_type: 'image/jpeg' }]
+    });
+
+    expect(parsed.decodedPhotos).toHaveLength(1);
+    expect(parsed.decodedPhotos[0].mimeType).toBe('image/jpeg');
+  });
+
   it('derives a stable request id when an older Shortcut sends a Date value', () => {
     const legacyInput = {
       ...validInput,
