@@ -11,6 +11,14 @@ async function navigateTo(page: Page, label: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ authenticated: false }),
+    });
+  });
   await page.addInitScript((theme) => localStorage.setItem(theme, 'light'), themeKey);
   await page.goto('/');
 });
@@ -72,14 +80,26 @@ test('飲食日誌維持私人資料邊界', async ({ page }) => {
   await navigateTo(page, '飲食日誌');
   await expect(page.getByRole('heading', { name: '飲食日誌' })).toBeVisible();
   await expect(page.getByRole('img', { name: '示範餐點相片預留位置' })).toHaveCount(5);
-  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
-  await expect(page.getByLabel('私人存取碼')).toHaveAttribute('type', 'password');
-  await expect(page.getByRole('button', { name: '載入私人紀錄' })).toBeVisible();
+  await expect(page.getByText('家庭私人紀錄')).toBeVisible();
+  await expect(page.getByRole('button', { name: '登入家庭帳戶' })).toBeVisible();
+  await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
 });
 
-test('私人餐食解鎖只保留於當次頁面', async ({ page }) => {
+test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({ page }) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
+      }),
+    });
+  });
   await page.route('**/api/private/meals', async (route) => {
-    expect(route.request().headers().authorization).toBe('Bearer test-access-code');
+    expect(route.request().headers().authorization).toBeUndefined();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -96,40 +116,45 @@ test('私人餐食解鎖只保留於當次頁面', async ({ page }) => {
             notes: 'Shortcut 測試紀錄',
             source: 'shortcut',
             photoCount: 1,
+            thumbnail: {
+              url: '/api/private/photo?token=signed-locator',
+              width: 640,
+              height: 480,
+            },
             recordedAt: '2030-01-02T12:00:00.000Z',
           },
         ],
       }),
     });
   });
+  await page.route('**/api/private/shortcut-credentials', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ credentials: [] }),
+    });
+  });
 
-  await navigateTo(page, '飲食日誌');
-  await page.getByLabel('私人存取碼').fill('test-access-code');
-  await page.getByRole('button', { name: '載入私人紀錄' }).click();
+  await page.goto('/?section=food-journal');
 
-  await expect(page.getByText('私人紀錄已解鎖')).toBeVisible();
+  await expect(page.getByText('家庭成員的私人空間')).toBeVisible();
   await expect(page.getByRole('heading', { name: '雞肉、西蘭花' })).toBeVisible();
-  await expect(page.getByText('1 張 · 不在公開頁載入')).toBeVisible();
-  await expect(page.locator('.journal-meal-card img')).toHaveCount(0);
+  await expect(page.locator('.journal-meal-card img')).toHaveAttribute(
+    'src',
+    '/api/private/photo?token=signed-locator',
+  );
+  await expect(page.getByText('家庭成員 · 只讀')).toBeVisible();
   await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
+  await expect(page.getByText('iPhone 上傳設定')).toBeVisible();
 
   const browserStorage = await page.evaluate(() => ({
     local: JSON.stringify(localStorage),
     session: JSON.stringify(sessionStorage),
   }));
-  expect(browserStorage.local).not.toContain('test-access-code');
-  expect(browserStorage.session).not.toContain('test-access-code');
-
-  await page.getByRole('button', { name: '鎖定' }).click();
-  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '雞肉、西蘭花' })).toHaveCount(0);
-
-  await page.getByLabel('私人存取碼').fill('test-access-code');
-  await page.getByRole('button', { name: '載入私人紀錄' }).click();
-  await expect(page.getByText('私人紀錄已解鎖')).toBeVisible();
-  await page.reload();
-  await navigateTo(page, '飲食日誌');
-  await expect(page.getByText('私人紀錄已鎖定')).toBeVisible();
+  expect(browserStorage.local).not.toContain('signed-locator');
+  expect(browserStorage.session).not.toContain('signed-locator');
+  expect(browserStorage.local).not.toContain('member@example.com');
+  expect(browserStorage.session).not.toContain('member@example.com');
 });
 
 test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {
