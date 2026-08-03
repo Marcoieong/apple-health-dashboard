@@ -28,6 +28,13 @@ const migrations = [
       '../server/meal-photo-mcp/migrations/meal-photo-v2-shortcut.sql',
       import.meta.url
     )
+  },
+  {
+    version: 'meal-photo-v3-family',
+    url: new URL(
+      '../server/meal-photo-mcp/migrations/meal-photo-v3-family.sql',
+      import.meta.url
+    )
   }
 ];
 

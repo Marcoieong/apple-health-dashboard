@@ -7,9 +7,8 @@ import {
 } from '../../server/meal-photo-mcp/index.js';
 import {
   extractShortcutBearerToken,
-  isValidShortcutToken,
-  loadShortcutRuntimeConfig
 } from '../../server/meal-photo-mcp/shortcutAuth.js';
+import { resolveShortcutOwner } from '../../server/family-auth/index.js';
 
 let dependencies:
   | ReturnType<typeof createProductionRecordMealDependencies>
@@ -68,18 +67,11 @@ export default async function handler(
     return;
   }
 
-  let shortcutConfig;
-  try {
-    shortcutConfig = loadShortcutRuntimeConfig();
-  } catch {
-    response.status(503).json({ error: 'service_locked' });
-    return;
-  }
-
   const suppliedToken = extractShortcutBearerToken(
     request.headers.authorization
   );
-  if (!isValidShortcutToken(suppliedToken, shortcutConfig.accessToken)) {
+  const ownerId = await resolveShortcutOwner(suppliedToken);
+  if (!ownerId) {
     response.status(401).json({ error: 'unauthorized' });
     return;
   }
@@ -87,7 +79,7 @@ export default async function handler(
   try {
     const result = await recordShortcutMeal(
       request.body,
-      shortcutConfig.ownerId,
+      ownerId,
       getDependencies()
     );
     response.status(result.status === 'recorded' ? 201 : 200).json(result);

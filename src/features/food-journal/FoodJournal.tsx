@@ -2,11 +2,11 @@ import {
   CalendarDays,
   Clock3,
   ImageOff,
-  KeyRound,
   LockKeyhole,
+  LogIn,
   LogOut
 } from 'lucide-react';
-import { type FormEvent, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   formatFoodJournalDate,
   formatMealTime,
@@ -17,35 +17,34 @@ import {
   mealTypeLabels,
   type FoodJournalEntry
 } from '../../models/foodJournal';
+import type { FamilyMember, FamilyViewStatus } from '../../hooks/useFoodJournal';
+import { FamilyShortcutPanel } from './FamilyShortcutPanel';
 
 interface FoodJournalProps {
   entries: readonly FoodJournalEntry[];
   mode: 'demo' | 'private';
-  status: 'locked' | 'loading' | 'unlocked' | 'error';
+  status: FamilyViewStatus;
+  member?: FamilyMember;
   error?: string;
-  unlock: (accessCode: string) => Promise<void>;
-  lock: () => void;
+  login: () => void;
+  logout: () => void;
+  retry: () => Promise<void>;
 }
 
 export function FoodJournal({
   entries,
   mode,
   status,
+  member,
   error,
-  unlock,
-  lock
+  login,
+  logout,
+  retry
 }: FoodJournalProps) {
   const days = useMemo(() => groupFoodJournalEntries(entries), [entries]);
   const today = todayKey();
-  const [accessCode, setAccessCode] = useState('');
   const isPrivate = mode === 'private';
-
-  async function handleUnlock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const submittedCode = accessCode;
-    setAccessCode('');
-    await unlock(submittedCode);
-  }
+  const memberLabel = member?.name || member?.email;
 
   return (
     <div className="page-stack food-journal-page">
@@ -58,7 +57,7 @@ export function FoodJournal({
         <div className="journal-overview" aria-label="飲食日誌顯示範圍">
           <span>{isPrivate ? '私人範圍' : '示範範圍'}</span>
           <strong>{days.length} 日 · {entries.length} 餐</strong>
-          <small>{isPrivate ? '已安全解鎖 · 只讀' : 'Demo Data · 只讀'}</small>
+          <small>{isPrivate ? `${memberLabel ?? '家庭成員'} · 只讀` : 'Demo Data · 只讀'}</small>
         </div>
       </section>
 
@@ -67,50 +66,45 @@ export function FoodJournal({
           <LockKeyhole size={20} />
         </span>
         <div>
-          <strong>{isPrivate ? '私人紀錄已解鎖' : '私人紀錄已鎖定'}</strong>
+          <strong>{isPrivate ? `${memberLabel ?? '家庭成員'}的私人空間` : '家庭私人紀錄'}</strong>
           {isPrivate ? (
             <p>
-              只讀顯示私人資料庫的餐食標籤；相片保留在私人物件儲存，不在公開頁載入。存取碼不會保存於瀏覽器。
+              只顯示你的餐食紀錄與受保護相片。其他家庭成員不能查看；管理員也不會預設取得你的健康資料。
             </p>
           ) : (
             <p>
-              頁面目前只顯示 Demo Data。輸入 Shortcut 存取碼可在本次頁面載入私人餐食紀錄，關閉或重整後需要重新解鎖。
+              頁面目前只顯示 Demo Data。登入獲邀請的家庭帳戶後，才會載入該成員自己的私人紀錄。
             </p>
           )}
         </div>
         {isPrivate ? (
-          <button className="journal-lock-button" type="button" onClick={lock}>
+          <button className="journal-lock-button" type="button" onClick={logout}>
             <LogOut size={17} aria-hidden="true" />
-            鎖定
+            登出
           </button>
         ) : null}
       </aside>
 
       {!isPrivate ? (
-        <form className="journal-private-access" onSubmit={handleUnlock}>
-          <label htmlFor="private-access-code">
-            <span>私人存取碼</span>
-            <input
-              id="private-access-code"
-              type="password"
-              value={accessCode}
-              onChange={(event) => setAccessCode(event.target.value)}
-              autoComplete="off"
-              spellCheck="false"
-              required
-              disabled={status === 'loading'}
-              placeholder="貼上 Shortcut 存取碼"
-            />
-          </label>
+        <section className="family-login-panel" aria-labelledby="family-login-heading">
+          <div>
+            <strong id="family-login-heading">登入你的家庭帳戶</strong>
+            <p>登入資料保存在加密、安全 Cookie；瀏覽器不會接觸 Auth0 權杖。</p>
+          </div>
           <button
             className="primary-button"
-            type="submit"
-            disabled={status === 'loading'}
+            type="button"
+            onClick={status === 'error' ? () => void retry() : login}
+            disabled={status === 'checking' || status === 'loading'}
           >
-            <KeyRound size={17} aria-hidden="true" />
-            {status === 'loading' ? '正在解鎖…' : '載入私人紀錄'}
+            <LogIn size={17} aria-hidden="true" />
+            {status === 'checking' || status === 'loading'
+              ? '正在檢查登入…'
+              : status === 'error'
+                ? '重新檢查'
+                : '登入家庭帳戶'}
           </button>
-        </form>
+        </section>
       ) : null}
 
       {error ? (
@@ -118,6 +112,8 @@ export function FoodJournal({
           {error}
         </p>
       ) : null}
+
+      {isPrivate ? <FamilyShortcutPanel /> : null}
 
       {days.length ? (
         <div className="journal-days">
@@ -165,11 +161,11 @@ export function FoodJournal({
                       >
                         <ImageOff size={28} aria-hidden="true" />
                         <strong>
-                          {isPrivate ? '私人相片已安全保存' : '相片預留位置'}
+                          {isPrivate ? '這餐沒有可顯示的相片' : '相片預留位置'}
                         </strong>
                         <span>
                           {isPrivate
-                            ? `${entry.privatePhotoCount ?? 0} 張 · 不在公開頁載入`
+                            ? `${entry.privatePhotoCount ?? 0} 張私人相片`
                             : '未載入私人相片'}
                         </span>
                       </div>
@@ -228,7 +224,7 @@ export function FoodJournal({
           <p>
             {isPrivate
               ? '使用 iPhone Shortcut 寫入後，紀錄會按澳門日期與餐別顯示。'
-              : '解鎖私人紀錄後，Shortcut 寫入的資料會顯示在這裡。'}
+              : '登入家庭帳戶後，Shortcut 寫入的私人資料會顯示在這裡。'}
           </p>
         </section>
       )}

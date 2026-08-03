@@ -43,7 +43,7 @@ export function AppShell({
           </span>
           <div>
             <strong>健康節奏</strong>
-            <small>Personal dashboard</small>
+            <small>Family dashboard</small>
           </div>
         </div>
         <nav className="side-nav">
@@ -73,7 +73,7 @@ export function AppShell({
         <header className="topbar">
           <div>
             <span className="eyebrow">澳門 · 唯讀健康紀錄</span>
-            <h1>個人健康 Dashboard</h1>
+            <h1>家庭健康 Dashboard</h1>
           </div>
           <div className="topbar-actions">
             {hasDemoData && <span className="demo-pill">Demo Data · 非真實資料</span>}

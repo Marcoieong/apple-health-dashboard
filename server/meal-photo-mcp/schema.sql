@@ -81,6 +81,18 @@ create table ingest_request_files (
   primary key (ingest_request_id, ordinal)
 );
 
+create table shortcut_credentials (
+  id uuid primary key default gen_random_uuid(),
+  owner_id text not null,
+  token_hash text not null unique
+    check (token_hash ~ '^[0-9a-f]{64}$'),
+  label text not null check (char_length(label) between 1 and 40),
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz,
+  expires_at timestamptz not null,
+  revoked_at timestamptz
+);
+
 -- The application sets app.owner_id after validating the OAuth subject.
 -- Database roles used by the public Vite deployment must not have table access.
 alter table meal_entries enable row level security;
@@ -88,12 +100,14 @@ alter table media_assets enable row level security;
 alter table meal_photos enable row level security;
 alter table ingest_requests enable row level security;
 alter table ingest_request_files enable row level security;
+alter table shortcut_credentials enable row level security;
 
 alter table meal_entries force row level security;
 alter table media_assets force row level security;
 alter table meal_photos force row level security;
 alter table ingest_requests force row level security;
 alter table ingest_request_files force row level security;
+alter table shortcut_credentials force row level security;
 
 create policy meal_entries_owner_policy on meal_entries
   using (owner_id = current_setting('app.owner_id', true))
@@ -172,3 +186,7 @@ create policy ingest_request_files_owner_policy on ingest_request_files
       )
     )
   );
+
+create policy shortcut_credentials_owner_policy on shortcut_credentials
+  using (owner_id = current_setting('app.owner_id', true))
+  with check (owner_id = current_setting('app.owner_id', true));

@@ -4,10 +4,9 @@ import {
   loadPrivateMealStorageConfig
 } from '../../server/meal-photo-mcp/index.js';
 import {
-  extractShortcutBearerToken,
-  isValidShortcutToken,
-  loadShortcutRuntimeConfig
-} from '../../server/meal-photo-mcp/shortcutAuth.js';
+  createPhotoLocator,
+  requireFamilySession
+} from '../../server/family-auth/index.js';
 
 export default async function handler(
   request: VercelRequest,
@@ -20,29 +19,37 @@ export default async function handler(
     return;
   }
 
-  let shortcutConfig;
   try {
-    shortcutConfig = loadShortcutRuntimeConfig();
-  } catch {
-    response.status(503).json({ error: 'service_locked' });
-    return;
-  }
-
-  const suppliedToken = extractShortcutBearerToken(
-    request.headers.authorization
-  );
-  if (!isValidShortcutToken(suppliedToken, shortcutConfig.accessToken)) {
-    response.status(401).json({ error: 'unauthorized' });
-    return;
-  }
-
-  try {
-    const meals = await listPrivateMeals(
-      shortcutConfig.ownerId,
+    const { config, session } = await requireFamilySession(request);
+    const privateMeals = await listPrivateMeals(
+      session.ownerId,
       loadPrivateMealStorageConfig()
     );
+    const meals = await Promise.all(
+      privateMeals.map(async ({ thumbnail, ...meal }) => ({
+        ...meal,
+        ...(thumbnail
+          ? {
+              thumbnail: {
+                url: `/api/private/photo?token=${encodeURIComponent(
+                  await createPhotoLocator(
+                    { ownerId: session.ownerId, assetId: thumbnail.assetId },
+                    config
+                  )
+                )}`,
+                width: thumbnail.width,
+                height: thumbnail.height
+              }
+            }
+          : {})
+      }))
+    );
     response.status(200).json({ meals });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'unauthorized') {
+      response.status(401).json({ error: 'unauthorized' });
+      return;
+    }
     response.status(500).json({ error: 'internal_error' });
   }
 }

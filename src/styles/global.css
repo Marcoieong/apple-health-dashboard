@@ -289,33 +289,33 @@ small { font-size: 0.78em; }
   cursor: pointer;
   font-weight: 720;
 }
-.journal-private-access {
+.family-login-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
+  align-items: center;
   gap: 12px;
   padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface-soft);
 }
-.journal-private-access label { min-width: 0; }
-.journal-private-access label > span {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--muted);
-  font-size: .76rem;
-  font-weight: 680;
-}
-.journal-private-access input {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  padding: 0 12px;
-  color: var(--ink);
-  background: var(--surface);
-}
+.family-login-panel strong { display: block; }
+.family-login-panel p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.family-shortcut-panel { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.family-shortcut-panel summary { min-height: 58px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; font-weight: 730; }
+.family-shortcut-panel summary > span { display: inline-flex; align-items: center; gap: 8px; }
+.family-shortcut-panel summary small { color: var(--muted); font-weight: 560; }
+.family-shortcut-content { padding: 0 18px 18px; }
+.family-shortcut-content > p { margin: 0 0 15px; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.issued-credential { padding: 15px; border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line)); border-radius: 13px; background: var(--teal-soft); }
+.issued-credential strong, .issued-credential code { display: block; }
+.issued-credential code { margin: 10px 0; padding: 10px; overflow-wrap: anywhere; border-radius: 9px; background: var(--surface); font-size: .72rem; }
+.shortcut-credential-actions { display: flex; justify-content: flex-start; }
+.shortcut-credential-list { margin: 16px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.shortcut-credential-list li { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+.shortcut-credential-list li:last-child { border-bottom: 0; }
+.shortcut-credential-list strong, .shortcut-credential-list span { display: block; }
+.shortcut-credential-list span, .muted-copy { margin-top: 3px; color: var(--muted); font-size: .74rem; }
 .journal-access-error {
   margin: -8px 0 0;
   padding: 13px 15px;
@@ -635,8 +635,11 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
   .journal-overview strong { margin: 0 8px; font-size: 1rem; }
   .journal-scope-note { align-items: flex-start; padding: 17px; }
   .journal-lock-button { min-width: 76px; }
-  .journal-private-access { grid-template-columns: 1fr; padding: 16px; }
-  .journal-private-access .primary-button { width: 100%; }
+  .family-login-panel { grid-template-columns: 1fr; padding: 16px; }
+  .family-login-panel .primary-button { width: 100%; }
+  .family-shortcut-panel summary { padding-inline: 16px; }
+  .family-shortcut-content { padding-inline: 16px; }
+  .shortcut-credential-actions .primary-button { width: 100%; }
   .journal-meal-card { grid-template-columns: 1fr; border-radius: 16px; }
   .journal-photo-placeholder, .journal-photo { min-height: 164px; border-right: 0; border-bottom: 1px solid var(--line); }
   .journal-meal-content { padding: 19px; }
