@@ -229,6 +229,31 @@ describe('Shortcut meal ingest', () => {
     expect(replay.status).toBe('already_recorded');
   });
 
+  it('uses the trusted server date when iOS sends an opaque Date value', async () => {
+    const { dependencies, mealRecords } = createDependencies();
+    dependencies.clock.now = () => new Date('2026-07-29T16:30:00.000Z');
+    const opaqueDateInput = {
+      ...validInput,
+      local_date: {
+        WFSerializationType: 4,
+        Value: { opaque: true }
+      }
+    } as unknown as ShortcutMealInput;
+
+    const result = await recordShortcutMeal(
+      opaqueDateInput,
+      'private-owner',
+      dependencies
+    );
+    const [record] = mealRecords.values();
+
+    expect(result).toMatchObject({
+      status: 'recorded',
+      local_date: '2026-07-30'
+    });
+    expect(record.localDate).toBe('2026-07-30');
+  });
+
   it('rejects reuse of a request id for different meal data', async () => {
     const { dependencies } = createDependencies();
     await recordShortcutMeal(validInput, 'private-owner', dependencies);

@@ -51,17 +51,13 @@ function hasValidClientRequestId(value: unknown): value is string {
   );
 }
 
-function dateInTimeZone(value: string, timeZone: unknown): string | undefined {
-  if (
-    typeof timeZone !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}T/.test(value)
-  ) {
+function formatDateInTimeZone(
+  date: Date,
+  timeZone: unknown
+): string | undefined {
+  if (typeof timeZone !== 'string' || Number.isNaN(date.getTime())) {
     return undefined;
   }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-
   try {
     const parts = new Intl.DateTimeFormat('en', {
       timeZone,
@@ -80,9 +76,15 @@ function dateInTimeZone(value: string, timeZone: unknown): string | undefined {
   }
 }
 
+function dateInTimeZone(value: string, timeZone: unknown): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) return undefined;
+  return formatDateInTimeZone(new Date(value), timeZone);
+}
+
 function normalizeShortcutLocalDate(
   value: unknown,
-  timeZone: unknown
+  timeZone: unknown,
+  fallbackDate?: Date
 ): unknown {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -98,17 +100,31 @@ function normalizeShortcutLocalDate(
       return `${localized[1]}-${localized[2].padStart(2, '0')}-${localized[3].padStart(2, '0')}`;
     }
 
-    return dateInTimeZone(trimmed, timeZone) ?? value;
+    return (
+      dateInTimeZone(trimmed, timeZone) ??
+      (fallbackDate
+        ? formatDateInTimeZone(fallbackDate, timeZone)
+        : undefined) ??
+      value
+    );
   }
 
   if (value && typeof value === 'object') {
     const serializedDate = (value as { date?: unknown }).date;
     if (typeof serializedDate === 'string') {
-      return dateInTimeZone(serializedDate, timeZone) ?? value;
+      return (
+        dateInTimeZone(serializedDate, timeZone) ??
+        (fallbackDate
+          ? formatDateInTimeZone(fallbackDate, timeZone)
+          : undefined) ??
+        value
+      );
     }
   }
 
-  return value;
+  return fallbackDate
+    ? formatDateInTimeZone(fallbackDate, timeZone) ?? value
+    : value;
 }
 
 function fallbackClientRequestId(input: ShortcutMealInput): string {
@@ -185,7 +201,10 @@ function decodeBase64(value: unknown): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-export function parseShortcutMealInput(value: unknown): {
+export function parseShortcutMealInput(
+  value: unknown,
+  options: { fallbackDate?: Date } = {}
+): {
   input: ShortcutMealInput;
   decodedPhotos: DecodedPhoto[];
 } {
@@ -210,7 +229,8 @@ export function parseShortcutMealInput(value: unknown): {
     ...receivedInput,
     local_date: normalizeShortcutLocalDate(
       receivedRecord.local_date,
-      receivedRecord.timezone
+      receivedRecord.timezone,
+      options.fallbackDate
     ) as string
   };
   const input: ShortcutMealInput = {
@@ -285,7 +305,15 @@ export async function recordShortcutMeal(
   ownerId: string,
   dependencies: RecordMealDependencies
 ): Promise<RecordMealResult> {
-  const { input, decodedPhotos } = parseShortcutMealInput(value);
+  const now = dependencies.clock.now();
+  // This private Shortcut endpoint records a meal at submission time. Some
+  // iOS versions serialize the Current Date magic variable as an opaque object
+  // that cannot be normalized reliably. In that legacy case, derive the date
+  // from the trusted server clock in the supplied IANA timezone instead of
+  // rejecting the photo. Recognized client dates remain validated unchanged.
+  const { input, decodedPhotos } = parseShortcutMealInput(value, {
+    fallbackDate: now
+  });
   const idempotencyKeyHash = dependencies.fingerprintIdempotencyKey(
     ownerId,
     input.client_request_id
@@ -316,7 +344,6 @@ export async function recordShortcutMeal(
     );
   }
 
-  const now = dependencies.clock.now();
   const assets: StoredMediaAsset[] = [];
   const linkedAssetIds = new Set<string>();
   let reusedPhotoCount = 0;
