@@ -51,6 +51,66 @@ function hasValidClientRequestId(value: unknown): value is string {
   );
 }
 
+function dateInTimeZone(value: string, timeZone: unknown): string | undefined {
+  if (
+    typeof timeZone !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T/.test(value)
+  ) {
+    return undefined;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+
+  try {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(date);
+    const part = (type: 'year' | 'month' | 'day') =>
+      parts.find((item) => item.type === type)?.value;
+    const year = part('year');
+    const month = part('month');
+    const day = part('day');
+    return year && month && day ? `${year}-${month}-${day}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeShortcutLocalDate(
+  value: unknown,
+  timeZone: unknown
+): unknown {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+    // Depending on the iPhone language and the chosen Shortcuts magic
+    // variable, a date can arrive as localized display text even when the
+    // Format Date action visibly uses a custom format.
+    const localized = trimmed.match(
+      /^(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日(?:\s.*)?$/
+    );
+    if (localized) {
+      return `${localized[1]}-${localized[2].padStart(2, '0')}-${localized[3].padStart(2, '0')}`;
+    }
+
+    return dateInTimeZone(trimmed, timeZone) ?? value;
+  }
+
+  if (value && typeof value === 'object') {
+    const serializedDate = (value as { date?: unknown }).date;
+    if (typeof serializedDate === 'string') {
+      return dateInTimeZone(serializedDate, timeZone) ?? value;
+    }
+  }
+
+  return value;
+}
+
 function fallbackClientRequestId(input: ShortcutMealInput): string {
   const hash = createHash('sha256');
   hash.update('shortcut-fallback-v1\0');
@@ -133,6 +193,7 @@ export function parseShortcutMealInput(value: unknown): {
     throw new IngestError('Meal data is invalid.', 'invalid_input');
   }
   const receivedInput = value as ShortcutMealInput;
+  const receivedRecord = value as Record<string, unknown>;
 
   if (
     !Array.isArray(receivedInput.photos) ||
@@ -145,13 +206,20 @@ export function parseShortcutMealInput(value: unknown): {
   // Older iOS Shortcut copies can serialize a Date magic variable instead of the
   // intended request-id text. Derive a stable, payload-bound id for those copies
   // without relaxing the shared ChatGPT/MCP input validation contract.
-  const input: ShortcutMealInput = {
+  const normalizedInput = {
     ...receivedInput,
+    local_date: normalizeShortcutLocalDate(
+      receivedRecord.local_date,
+      receivedRecord.timezone
+    ) as string
+  };
+  const input: ShortcutMealInput = {
+    ...normalizedInput,
     client_request_id: hasValidClientRequestId(
       receivedInput.client_request_id
     )
       ? receivedInput.client_request_id
-      : fallbackClientRequestId(receivedInput)
+      : fallbackClientRequestId(normalizedInput)
   };
   const validationInput = asRecordMealInput(input);
   validateRecordMealInput(validationInput);

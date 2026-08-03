@@ -133,6 +133,33 @@ describe('Shortcut meal parsing', () => {
     );
   });
 
+  it('normalizes an iPhone localized meal date without weakening validation', () => {
+    const parsed = parseShortcutMealInput({
+      ...validInput,
+      local_date: '2026年8月3日 12:27'
+    });
+
+    expect(parsed.input.local_date).toBe('2026-08-03');
+  });
+
+  it('normalizes an iPhone Date object in the supplied timezone', () => {
+    const parsed = parseShortcutMealInput({
+      ...validInput,
+      local_date: { date: '2026-07-29T16:30:00.000Z' }
+    });
+
+    expect(parsed.input.local_date).toBe('2026-07-30');
+  });
+
+  it('still rejects an unrecognized meal date', () => {
+    expect(() =>
+      parseShortcutMealInput({
+        ...validInput,
+        local_date: 'today'
+      })
+    ).toThrow('Meal date must use YYYY-MM-DD.');
+  });
+
   it('rejects missing photos, malformed Base64 and MIME mismatches', () => {
     expect(() =>
       parseShortcutMealInput({ ...validInput, photos: [] })
