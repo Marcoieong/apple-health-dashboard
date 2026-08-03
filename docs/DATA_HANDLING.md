@@ -9,10 +9,10 @@
 1. iPhone Shortcut 選取 1–4 張照片，先轉成不保留 metadata 的 JPEG。
 2. Shortcut 收集澳門日期、餐別、食物標籤、做法及可選備註。
 3. 圖片以 Base64 直接傳至 `/api/shortcut/meal`；不使用外部照片網址。
-4. API 先驗證 Bearer 存取碼，再檢查欄位、實際圖片 magic bytes、單張及總大小。
+4. API 先驗證該家庭成員可撤銷的 Bearer 上傳金鑰，再檢查欄位、實際圖片 magic bytes、單張及總大小。
 5. 圖片在伺服器重新編碼及去除 EXIF/GPS，寫入私人物件儲存；metadata 寫入按擁有人隔離的 PostgreSQL。
 6. `client_request_id` 經 HMAC 處理，用於重試去重；相同圖片亦以內容 hash 去重。
-7. Dashboard 只在當次頁面輸入存取碼後，從 `/api/private/meals` 讀取不含圖片的私人餐食摘要。
+7. Dashboard 以加密 HttpOnly session 從 `/api/private/meals` 讀取該成員的私人餐食摘要；縮圖經短效、再次核對擁有人的 `/api/private/photo` 代理讀取。
 
 ## 匯出、版本與遷移
 
@@ -26,8 +26,8 @@
 
 - 不接收或保存外部下載 URL；不把物件儲存 key、內容 hash、資料庫 ID 或存取碼回傳至網站。
 - 以使用者範圍的 idempotency key 及內容 hash 防止重試造成重複資料。
-- 網站只透過已認證的同源 API 讀取摘要，目前不提供原圖、縮圖或直連 object storage。
-- 存取碼只存在 Dashboard 當次 React 記憶體，不使用瀏覽器持久儲存。
+- 網站只透過已認證的同源 API 讀取摘要與受保護縮圖，不提供直連 object storage。
+- Auth0 權杖及 Shortcut 金鑰不交給 React；網站登入只使用加密 HttpOnly session Cookie。
 - 現有 MCP/OAuth 程式碼保留作未來候選，但不參與目前 Shortcut 路徑。
 
 完整 contract、schema、保留政策與實作階段見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
@@ -36,7 +36,7 @@
 
 `health.pui-pui.org` 由公開 Vercel 部署提供介面。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此只可包含虛構 Demo Data。真實個人健康資料、存取碼及 Vercel 秘密不可提交至公開 repository 或發布分支。
 
-Bearer 存取碼是目前的單一使用者驗證邊界，不應放在網址參數。私人 API 回應使用 `private, no-store`，service worker 明確不快取 `/api/`。這仍不是多用戶 OAuth；日後如擴展使用者範圍，必須改用每人獨立身份與撤銷機制。
+家庭網站使用每人獨立 Auth0 身份、穩定不透明 owner ID 與 PostgreSQL RLS。Shortcut 使用每人獨立且可撤銷的 Bearer 金鑰，不應放在網址參數。私人 API 回應使用 `private, no-store`，service worker 明確不快取 `/api/`。管理員只控制邀請 allowlist，不會預設擁有跨成員讀取權限。
 
 ## 缺失資料
 
