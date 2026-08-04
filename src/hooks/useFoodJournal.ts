@@ -188,7 +188,12 @@ export function useFoodJournal() {
   }, []);
 
   const logout = useCallback(() => {
-    window.location.assign('/api/auth/logout');
+    void fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+    }).finally(() => {
+      window.location.assign('/?section=food-journal');
+    });
   }, []);
 
   return {

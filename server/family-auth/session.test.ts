@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadFamilyAuthConfig } from './config.js';
 import {
+  clearAllSessionCookies,
   createPhotoLocator,
   createSessionCookie,
   createTransactionCookie,
@@ -42,6 +43,14 @@ function tamperCookieToken(cookie: string): string {
 }
 
 describe('family encrypted browser state', () => {
+  it('clears both secure production and local fallback session cookies', () => {
+    expect(clearAllSessionCookies()).toEqual([
+      expect.stringContaining('__Host-health-family-session='),
+      expect.stringContaining('health-family-session=')
+    ]);
+    expect(clearAllSessionCookies().every((cookie) => cookie.includes('Max-Age=0'))).toBe(true);
+  });
+
   it('round-trips a secure server-only family session', async () => {
     const authConfig = config();
     const cookie = await createSessionCookie(

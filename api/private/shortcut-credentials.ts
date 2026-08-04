@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
+  assertSameOriginJsonMutation,
   createCredentialLabel,
   issueShortcutCredential,
   listShortcutCredentials,
@@ -19,7 +20,7 @@ export default async function handler(
     return;
   }
   try {
-    const { session } = await requireFamilySession(request);
+    const { config: familyConfig, session } = await requireFamilySession(request);
     const config = loadShortcutCredentialConfig();
     if (request.method === 'GET') {
       response.status(200).json({
@@ -27,6 +28,7 @@ export default async function handler(
       });
       return;
     }
+    assertSameOriginJsonMutation(request, familyConfig);
     if (request.method === 'POST') {
       const label =
         typeof request.body?.label === 'string'
@@ -47,6 +49,14 @@ export default async function handler(
     const message = error instanceof Error ? error.message : '';
     if (message === 'unauthorized') {
       response.status(401).json({ error: 'unauthorized' });
+      return;
+    }
+    if (message === 'forbidden') {
+      response.status(403).json({ error: 'forbidden' });
+      return;
+    }
+    if (message === 'invalid_content_type') {
+      response.status(415).json({ error: 'invalid_content_type' });
       return;
     }
     if (message === 'credential_limit' || message === 'invalid_label') {

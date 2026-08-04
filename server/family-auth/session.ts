@@ -146,6 +146,13 @@ export function clearSessionCookie(config: FamilyAuthConfig): string {
   );
 }
 
+export function clearAllSessionCookies(): string[] {
+  return [
+    '__Host-health-family-session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0',
+    'health-family-session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0'
+  ];
+}
+
 export async function createTransactionCookie(
   transaction: AuthTransaction,
   config: FamilyAuthConfig

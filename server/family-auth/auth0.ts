@@ -17,8 +17,32 @@ function randomBase64Url(bytes = 32): string {
   return randomBytes(bytes).toString('base64url');
 }
 
-function safeReturnTo(value: string | undefined): string {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/';
+export function safeReturnTo(
+  value: string | undefined,
+  baseUrl: URL
+): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+
+  const path = value.split(/[?#]/, 1)[0] ?? '';
+  const hasControlCharacter = [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+  if (
+    value.includes('\\') ||
+    hasControlCharacter ||
+    /%(?:2f|5c)/i.test(path)
+  ) {
+    return '/';
+  }
+
+  try {
+    const target = new URL(value, baseUrl);
+    if (target.origin !== baseUrl.origin) return '/';
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return '/';
+  }
 }
 
 function sameSecret(left: string, right: string): boolean {
@@ -56,7 +80,7 @@ export function beginAuth0Login(
       state,
       nonce,
       codeVerifier,
-      returnTo: safeReturnTo(requestedReturnTo)
+      returnTo: safeReturnTo(requestedReturnTo, config.baseUrl)
     }
   };
 }

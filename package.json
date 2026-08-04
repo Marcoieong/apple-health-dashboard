@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/assert-public-bundle-safe.mjs dist",
     "privacy:scan": "node scripts/assert-public-bundle-safe.mjs dist",
     "private-db:migrate": "node scripts/apply-private-schema.mjs",
     "lint": "eslint . --max-warnings=0",
