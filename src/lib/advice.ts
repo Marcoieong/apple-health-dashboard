@@ -13,7 +13,7 @@ export function getRecoveryAdvice(
   if (!record) {
     return {
       title: '先建立今天的基準',
-      message: '等待 ChatGPT 匯入今天的活動與睡眠資料後，Dashboard 才能提供一項具體行動。'
+      message: '今天的活動與睡眠資料尚未同步，Dashboard 暫時無法提供具體行動。'
     };
   }
 

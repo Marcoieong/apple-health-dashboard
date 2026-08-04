@@ -1,14 +1,14 @@
-import { Bot } from 'lucide-react';
+import { DatabaseZap } from 'lucide-react';
 
 export function EmptyState() {
   return (
     <section className="empty-state" aria-labelledby="empty-title">
       <span className="empty-icon" aria-hidden="true">
-        <Bot size={30} />
+        <DatabaseZap size={30} />
       </span>
-      <p className="eyebrow">只讀資料模式</p>
-      <h2 id="empty-title">等待 ChatGPT 匯入資料</h2>
-      <p>網站不提供手動輸入。資料由 ChatGPT 整理及驗證後匯入，今日、每週與每月分析會自動更新。</p>
+      <p className="eyebrow">同步狀態</p>
+      <h2 id="empty-title">尚未有健康紀錄</h2>
+      <p>健康紀錄將由私人 iPhone Shortcut 流程導入；此網站不提供人工輸入。</p>
     </section>
   );
 }

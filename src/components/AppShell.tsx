@@ -3,16 +3,18 @@ import {
   CalendarDays,
   HeartPulse,
   Moon,
-  Sun
+  Sun,
+  Utensils
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type AppView = 'today' | 'weekly' | 'monthly';
+export type AppView = 'today' | 'weekly' | 'monthly' | 'food-journal';
 
 const navigation: { id: AppView; label: string; icon: typeof HeartPulse }[] = [
   { id: 'today', label: '今日', icon: HeartPulse },
   { id: 'weekly', label: '每週', icon: BarChart3 },
-  { id: 'monthly', label: '每月', icon: CalendarDays }
+  { id: 'monthly', label: '每月', icon: CalendarDays },
+  { id: 'food-journal', label: '飲食日誌', icon: Utensils }
 ];
 
 interface AppShellProps {
@@ -41,7 +43,7 @@ export function AppShell({
           </span>
           <div>
             <strong>健康節奏</strong>
-            <small>Personal dashboard</small>
+            <small>Family dashboard</small>
           </div>
         </div>
         <nav className="side-nav">
@@ -61,8 +63,8 @@ export function AppShell({
         <div className="privacy-note">
           <span className="status-dot" aria-hidden="true" />
           <div>
-            <strong>ChatGPT 匯入</strong>
-            <span>Dashboard 只讀，沒有手動輸入</span>
+            <strong>唯讀 Dashboard</strong>
+            <span>不提供網頁人工輸入</span>
           </div>
         </div>
       </aside>
@@ -70,11 +72,11 @@ export function AppShell({
       <div className="workspace">
         <header className="topbar">
           <div>
-            <span className="eyebrow">澳門 · ChatGPT 匯入</span>
-            <h1>個人健康 Dashboard</h1>
+            <span className="eyebrow">澳門 · 唯讀健康紀錄</span>
+            <h1>家庭健康 Dashboard</h1>
           </div>
           <div className="topbar-actions">
-            {hasDemoData && <span className="demo-pill">ChatGPT 匯入 · Demo</span>}
+            {hasDemoData && <span className="demo-pill">Demo Data · 非真實資料</span>}
             <button
               className="icon-button"
               type="button"

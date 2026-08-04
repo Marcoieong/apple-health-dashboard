@@ -1,16 +1,22 @@
 # 個人健康 Dashboard
 
-一個以澳門日常生活與 iPhone Safari 為優先的個人健康習慣 Dashboard。介面採只讀模式：健康資料由 ChatGPT 整理及驗證後匯入，網站負責計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
+一個以澳門日常生活與 iPhone Safari 為優先的家庭健康習慣 Dashboard。公開部分只顯示 Demo Data；獲邀請的家庭成員可用自己的帳戶登入，各自查看私人餐食紀錄及受保護縮圖。網站不提供人工健康資料輸入，餐食由每位成員自己的 iPhone Shortcut 寫入。健康指標頁會計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
 
-> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。現階段沒有直接連接 Apple Health；公開網站的初始 14 日資料是虛構示例，清楚標示為 **ChatGPT 匯入 · Demo**。
+> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。現階段沒有直接連接 Apple Health；首次開啟的 14 日資料是虛構示例，清楚標示為 **Demo Data · 非真實資料**。
 
 ## 功能
 
 - 今日總覽：分數、評級、各項進度、差距與一項可執行補救建議
 - 每週趨勢：最近 7 日圖表、平均、上週比較、瓶頸與習慣完成率
 - 每月進度：體重、體脂、腰圍、活動、睡眠、訓練及月度優先任務
-- 只讀資料：沒有新增、編輯、刪除或檔案上載入口
-- ChatGPT 管理：由 ChatGPT 完成資料整理、驗證及版本更新
+- 飲食日誌：按澳門日期與餐別展示食物照片及種類，不估算卡路里或份量
+- 公開介面唯讀：不提供新增、編輯、刪除、檔案上傳或公開匯入
+- 資料服務預留：JSON 驗證、儲存與匯出函數保留供日後受保護整合使用
+- 家庭私人帳戶：Auth0 登入、加密 HttpOnly session、邀請電郵 allowlist
+- 成員資料隔離：每個帳戶使用獨立擁有人 ID 與 PostgreSQL RLS；家庭管理員不會預設看到其他成員資料
+- iPhone Shortcut 導入：每位成員可建立及撤銷自己的 Bearer 金鑰；Base64 圖片會清除 EXIF/GPS、重試去重並存入私人儲存
+- 私人唯讀日誌：登入後只讀取該成員自己的餐食摘要與短效受保護縮圖
+- ChatGPT 導入預留：MCP/OAuth 接口保留，但不宣稱 Pro 帳戶已支援手機自訂 MCP 寫入
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
 - 基礎 PWA：manifest、service worker、standalone 顯示與離線開啟已建置內容
 
@@ -23,7 +29,7 @@
 - Playwright Chromium 端到端與響應式測試
 - Vite PWA plugin
 
-主要模組位於 `src/features`、`src/lib`、`src/models` 及 `src/services`，React 元件不直接承擔評分或儲存邏輯。
+主要模組位於 `src/features`、`src/lib`、`src/models` 及 `src/services`。評分是純函數；預留的本機儲存與資料轉換集中在 service，React 元件不直接操作 `localStorage`。公開介面只讀取資料，不暴露修改控制。
 
 ## 安裝與啟動
 
@@ -49,8 +55,9 @@ npm run dev
 ```bash
 pnpm lint
 pnpm test
-pnpm test:e2e
 pnpm build
+pnpm privacy:scan
+pnpm test:e2e
 pnpm preview
 ```
 
@@ -69,29 +76,37 @@ pnpm exec playwright install chromium
 3. 選「加入主畫面」。
 4. 從主畫面開啟即可使用 standalone 顯示。
 
-網站目前會載入 14 日虛構 Demo Data。底部導覽只有「今日」、「每週」和「每月」，不提供輸入或編輯頁。
+網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」和「飲食日誌」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。家庭成員登入及邀請方式見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md)；手機餐食建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。
 
-## ChatGPT 資料流程
+## 資料儲存與導入邊界
 
-- 使用者把 Apple 健康匯出或結構化紀錄交給 ChatGPT。
-- ChatGPT 整理日期、澳門時區、單位、缺失值及重複紀錄。
-- 通過資料驗證及私隱檢查後，才更新 Dashboard 的只讀資料來源。
-- 公開 GitHub Pages 不會在未確認私隱方案前放入真實個人健康資料。
+- 目前公開網站只載入虛構 Demo Data，不提供清除、備份、還原或匯入控制。
+- 如需移除瀏覽器內的網站資料，可在 Safari 設定中清除該網站的資料。
+- storage service 仍保留 schema 驗證、版本遷移及匯入／匯出能力，但不會暴露在公開 UI。
+- 真實餐食資料只可經家庭成員自己的可撤銷 Bearer 金鑰，由 iPhone Shortcut API 寫入；不能把一般 ChatGPT 附件視為已自動同步。
+- Shortcut 直接送出壓縮後的 Base64 圖片，不傳外部圖片網址；伺服器會再次驗證格式並重新編碼以移除 EXIF/GPS。
+- Dashboard 登入後只讀取該成員的餐食標籤、日期、餐別、備註及短效受保護縮圖；圖片不使用公開 Blob URL。
+- 公開部署不會在未確認私隱方案前放入真實個人健康資料。
 
-健康匯出檔屬敏感個人資料，應存放在受保護的位置。詳細規則見 [資料處理說明](docs/DATA_HANDLING.md) 與 [隱私說明](docs/PRIVACY.md)。
+目前飲食照片部分已完成資料 contract、Shortcut 寫入端點、私人資料庫、私人物件儲存、圖片清理、家庭登入、成員隔離、唯讀摘要及受保護縮圖。缺少身份、秘密或私人儲存設定時，端點會 fail closed。操作見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md) 與 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)；完整設計見 [食物照片架構](docs/FOOD_PHOTO_ARCHITECTURE.md)、[資料處理說明](docs/DATA_HANDLING.md) 與 [隱私說明](docs/PRIVACY.md)。
 
 ## 部署
 
-GitHub Pages workflow 與 Cloudflare Pages 設定已備妥，詳見 [部署指南](docs/DEPLOYMENT.md)。本階段推薦 Cloudflare Pages，因為 Vite SPA 的根路徑設定較直接；若 GitHub 已是主要程式碼平台，也可直接使用已提供的 Actions workflow。
+目前選用 Vercel 連接 GitHub repository，並以 `health.pui-pui.org` 作正式網域。GitHub Pages workflow 與 Cloudflare Pages 設定仍保留作候選／後備，詳見 [部署指南](docs/DEPLOYMENT.md)。
 
 ## 已知限制
 
 - 未直接連接 Apple Health／HealthKit
-- 尚未建立可承載真實健康資料的登入及私人後端
+- 健康指標仍是 Demo Data；尚未由 Shortcut 或 Apple Health 自動同步
+- 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
+- Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
+- 家庭邀請目前由部署 allowlist 管理，尚未提供管理員自助邀請頁
+- 各成員可撤銷自己的 iPhone 金鑰，但餐食自助刪除及家庭資料匯出仍未完成
+- ChatGPT 自訂 MCP 寫入仍未作為正式手機入口
 - 沒有 AI 自動分析
-- PWA 離線只保證已快取介面可開啟，不會進行背景健康資料同步
-- 月度比較只依賴已匯入紀錄；缺失欄位會以「—」顯示
+- PWA 離線只保證已快取介面可開啟；私人 `/api/` 資料明確不進 service worker cache
+- 月度比較只依賴可讀取的紀錄；缺失欄位會以「—」顯示
 
-## 第二階段
+## 下一個小階段
 
-下一階段先以可審核、私密的 ChatGPT 匯入流程驗證資料欄位、時區與重複資料處理，再考慮 HealthKit companion app。方案比較見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
+在 Vercel 預覽環境完成 Marco 帳戶登入、舊資料保留、受保護縮圖及新個人 Shortcut 金鑰的 iPhone 實機驗證；確認後才把同一設定提升至正式網域，再邀請第一位家庭成員。Apple Health 方案比較見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。

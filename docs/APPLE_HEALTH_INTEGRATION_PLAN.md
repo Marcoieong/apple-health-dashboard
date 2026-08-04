@@ -2,7 +2,7 @@
 
 ## 邊界
 
-第一階段沒有連接 Apple Health，也沒有即時或背景同步。Dashboard 採只讀模式，資料由 ChatGPT 整理及驗證後匯入；網站不接受手動輸入。
+第一階段沒有連接 Apple Health，也沒有即時或背景同步。公開 Dashboard 採唯讀模式，只展示 Demo Data；私人 ChatGPT 導入與 Apple Health 資料管道均尚未部署。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 
@@ -23,7 +23,7 @@ Apple Health 資料由 iOS 的 HealthKit 權限模型保護。HealthKit 是原�
 ### 1. iOS Shortcut
 
 - 只擷取已批准的最少欄位，例如步數、活動能量、運動分鐘、睡眠。
-- 以固定 JSON schema 輸出至 iCloud Drive 或手動分享至 Dashboard。
+- 以固定 JSON schema 輸出至受保護的私人導入服務，不直接傳送到公開 Dashboard。
 - 先在澳門時區 `Asia/Macau` 驗證跨午夜、睡眠跨日及重複執行。
 - 不應把健康內容寫入捷徑日誌或未受控 webhook。
 
@@ -54,11 +54,11 @@ Apple Health 資料由 iOS 的 HealthKit 權限模型保護。HealthKit 是原�
 
 ## 推薦第二階段路線
 
-推薦先做「受控 JSON 匯入 v2」：
+推薦先做「受控私人導入 v2」：
 
 1. 定義 Apple Health 欄位對照、來源、單位、澳門時區及去重規則。
-2. 用 iOS Shortcut 產生單日或最近 7 日 JSON，讓使用者主動匯入。
-3. 加入匯入預覽、差異檢查與可回復備份，完成 2–4 週真實使用驗證。
+2. 先建立有身份驗證的私人 ChatGPT 導入服務，再由 iOS Shortcut 產生單日或最近 7 日 JSON 傳送至該服務。
+3. 在私人流程加入預覽、差異檢查與可回復備份，完成 2–4 週真實使用驗證。
 4. 只有在欄位和流程穩定後，才評估原生 iOS Companion App。
 
 這條路線成本低、資料流可見，也能先驗證真正需要自動化的指標。第一階段不會聲稱或模擬 Apple Health 即時同步。

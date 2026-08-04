@@ -1,9 +1,17 @@
-import { useMemo } from 'react';
-import { createDemoRecords } from '../data/demoRecords';
+import { useState } from 'react';
+import type { DailyHealthRecord } from '../models/health';
+import { loadRecords } from '../services/storage';
 
 export function useHealthRecords() {
-  // This is the single read-only handoff point for ChatGPT-managed data.
-  // Keep Demo records until a private import path for real health data is approved.
-  const records = useMemo(() => createDemoRecords(), []);
-  return { records };
+  const [initialState] = useState(() => {
+    try {
+      return { records: loadRecords(), error: null as string | null };
+    } catch (reason) {
+      return {
+        records: [] as DailyHealthRecord[],
+        error: reason instanceof Error ? reason.message : '無法讀取本機資料。',
+      };
+    }
+  });
+  return { records: initialState.records, error: initialState.error };
 }

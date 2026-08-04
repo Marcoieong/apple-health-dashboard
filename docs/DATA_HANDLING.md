@@ -1,22 +1,42 @@
 # 資料處理說明
 
-## 只讀模式
+## 本機健康紀錄
 
-Dashboard 沒有手動輸入、編輯、刪除、清除或檔案上載入口。React 介面只讀取由 ChatGPT 管理的資料來源，並產生今日、每週及每月分析。
+公開 Dashboard 採唯讀模式，不提供新增、編輯、刪除、清除、上傳或檔案匯入。獨立 storage service 與 schema migration 仍保留，供日後受保護的私人整合使用；React 元件不直接管理儲存格式。首次開啟會建立 14 日虛構 Demo Data。
 
-## ChatGPT 匯入流程
+## 私人 iPhone Shortcut 餐食流程
 
-1. 使用者把 Apple 健康匯出或結構化紀錄交給 ChatGPT。
-2. ChatGPT 檢查日期、澳門時區、單位、數值範圍、缺失值及重複日期。
-3. 資料通過驗證後，才可轉成 `DailyHealthRecord`。
-4. 更新前必須確認發布位置符合資料私隱要求。
-5. Dashboard 重新建置、測試及發布，使用者不需要在網站操作輸入表單。
+1. iPhone Shortcut 選取 1–4 張照片，先轉成不保留 metadata 的 JPEG。
+2. Shortcut 收集澳門日期、餐別、食物標籤、做法及可選備註。
+3. 圖片以 Base64 直接傳至 `/api/shortcut/meal`；不使用外部照片網址。
+4. API 先驗證該家庭成員可撤銷的 Bearer 上傳金鑰，再檢查欄位、實際圖片 magic bytes、單張及總大小。
+5. 圖片在伺服器重新編碼及去除 EXIF/GPS，寫入私人物件儲存；metadata 寫入按擁有人隔離的 PostgreSQL。
+6. `client_request_id` 經 HMAC 處理，用於重試去重；相同圖片亦以內容 hash 去重。
+7. Dashboard 以加密 HttpOnly session 從 `/api/private/meals` 讀取該成員的私人餐食摘要；縮圖經短效、再次核對擁有人的 `/api/private/photo` 代理讀取。
+
+## 匯出、版本與遷移
+
+- JSON envelope、CSV 轉換與 schema migration 函數保留作內部能力，公開介面不提供相關控制。
+- 當前 `schemaVersion` 是 1，storage service 已預留 migration 函數。
+- 任何解析、驗證或容量錯誤都不得把健康資料寫到 console。
+
+## 手機食物照片流程
+
+日常入口是 iPhone Shortcut，而不是 Codex、ChatGPT 附件或網站表單。Shortcut 直接傳送圖片內容；API 建立清理後的私人 master 與縮圖，再把餐別及食物種類 metadata 寫入私人資料層。
+
+- 不接收或保存外部下載 URL；不把物件儲存 key、內容 hash、資料庫 ID 或存取碼回傳至網站。
+- 以使用者範圍的 idempotency key 及內容 hash 防止重試造成重複資料。
+- 網站只透過已認證的同源 API 讀取摘要與受保護縮圖，不提供直連 object storage。
+- Auth0 權杖及 Shortcut 金鑰不交給 React；網站登入只使用加密 HttpOnly session Cookie。
+- 現有 MCP/OAuth 程式碼保留作未來候選，但不參與目前 Shortcut 路徑。
+
+完整 contract、schema、保留政策與實作階段見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
 
 ## 公開網站限制
 
-目前 `health.pui-pui.org` 由公開 GitHub Pages 提供。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此只可包含虛構 Demo Data。真實個人健康資料不可提交至公開 repository 或發布分支。
+`health.pui-pui.org` 由公開 Vercel 部署提供介面。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此只可包含虛構 Demo Data。真實個人健康資料、存取碼及 Vercel 秘密不可提交至公開 repository 或發布分支。
 
-在加入真實資料前，必須先採用有身份驗證的私人資料層，或其他經使用者確認的端對端私密方案。
+家庭網站使用每人獨立 Auth0 身份、穩定不透明 owner ID 與 PostgreSQL RLS。Shortcut 使用每人獨立且可撤銷的 Bearer 金鑰，不應放在網址參數。私人 API 回應使用 `private, no-store`，service worker 明確不快取 `/api/`。管理員只控制邀請 allowlist，不會預設擁有跨成員讀取權限。
 
 ## 缺失資料
 

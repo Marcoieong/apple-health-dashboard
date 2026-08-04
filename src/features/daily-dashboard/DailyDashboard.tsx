@@ -64,7 +64,7 @@ export function DailyDashboard({ record, weeklyChange }: DailyDashboardProps) {
               <h3>{ratingLabels[score.rating]}</h3>
               <p>{score.rating}</p>
               {!score.isComplete && (
-                <small>{score.missingFields.length} 項評分資料尚未匯入</small>
+                <small>{score.missingFields.length} 項評分資料尚未同步</small>
               )}
             </div>
           </div>
