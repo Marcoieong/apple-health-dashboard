@@ -35,6 +35,13 @@ const migrations = [
       '../server/meal-photo-mcp/migrations/meal-photo-v3-family.sql',
       import.meta.url
     )
+  },
+  {
+    version: 'health-sync-v1',
+    url: new URL(
+      '../server/health-sync/migrations/health-sync-v1.sql',
+      import.meta.url
+    )
   }
 ];
 

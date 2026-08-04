@@ -2,7 +2,19 @@
 
 ## 邊界
 
-第一階段沒有連接 Apple Health，也沒有即時或背景同步。公開 Dashboard 採唯讀模式，只展示 Demo Data；私人 ChatGPT 導入與 Apple Health 資料管道均尚未部署。
+第一階段沒有連接 Apple Health，也沒有即時或背景同步。公開 Dashboard 採唯讀模式，只展示 Demo Data；私人 ChatGPT 導入與 Apple Health 真機資料管道均尚未部署。
+
+## 實作狀態（2026-08-05）
+
+第二階段目前已在 `codex/health-sync-phase2` 分支完成私人同步後端的第一個可審核切片：
+
+- 日級聚合 JSON contract、嚴格欄位／日期／時區驗證及 31 日批次上限；
+- 每成員、每裝置的可撤銷同步憑證；
+- PostgreSQL schema、強制 RLS、冪等請求紀錄及裝置 cursor；
+- 寫入、私人健康資料讀取、同步狀態及裝置管理 API；
+- 部分欄位更新、較新 HealthKit 修正值及重試去重規則的單元測試。
+
+這只代表程式碼已準備接受審核，**不代表已套用 Preview／Production 資料庫，也不代表已連接 iPhone HealthKit**。下一個工程里程碑是建立最小原生 iOS Companion App，先用「手動同步」在 Preview 完成一個真實請求、資料庫保存及 Dashboard 顯示的閉環；其後才評估背景同步。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 
@@ -54,11 +66,13 @@ Apple Health 資料由 iOS 的 HealthKit 權限模型保護。HealthKit 是原�
 
 ## 推薦第二階段路線
 
-推薦先做「受控私人導入 v2」：
+採用「最小原生 Companion App + 受控私人聚合 API」：
 
-1. 定義 Apple Health 欄位對照、來源、單位、澳門時區及去重規則。
-2. 先建立有身份驗證的私人 ChatGPT 導入服務，再由 iOS Shortcut 產生單日或最近 7 日 JSON 傳送至該服務。
-3. 在私人流程加入預覽、差異檢查與可回復備份，完成 2–4 週真實使用驗證。
-4. 只有在欄位和流程穩定後，才評估原生 iOS Companion App。
+1. 先鎖定日級欄位、單位、澳門時區、缺失值、修正值及去重 contract（已在分支完成）。
+2. 建立使用 Auth0 Native Application、Authorization Code + PKCE 的 iOS App；不把 client secret 放入 App。
+3. 首次同步最近 30 日，其後以 HealthKit anchored query 找出受影響日期，再重新計算最近 7 日作修正窗口。
+4. 裝置只上傳使用者授權的日級聚合；不傳原始 sample、sample UUID、來源 App、裝置序號或完整時間線。
+5. 先驗證手動同步的端到端收據，再加入 HealthKit observer/background delivery；背景更新由 iOS 排程，不能承諾固定分鐘數。
+6. 完成 2–4 週真實使用、撤銷、重試、跨午夜及睡眠歸日驗證後，才提升至正式網域及邀請其他家庭成員。
 
-這條路線成本低、資料流可見，也能先驗證真正需要自動化的指標。第一階段不會聲稱或模擬 Apple Health 即時同步。
+ChatGPT 在這條路線中先擔任經 OAuth 授權的**唯讀解讀層**，讀取已保存的日級摘要；它不是 HealthKit 資料來源，也不直接持有 iPhone HealthKit 權限。任何寫入或修改健康資料的能力另行審核。第一階段及目前分支均不會聲稱或模擬 Apple Health 即時同步。

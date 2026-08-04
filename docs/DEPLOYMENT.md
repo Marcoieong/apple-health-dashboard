@@ -68,6 +68,26 @@ Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備
 
 環境變數、ChatGPT 連接方式及鎖定狀態檢查見 [ChatGPT 接入指南](CHATGPT_CONNECTION.md)。完整設計及未驗證假設見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
 
+## Apple Health 私人同步後端（第二階段）
+
+`codex/health-sync-phase2` 分支已包含 `health-sync-v1` migration 及私人 API，但尚未套用至 Preview 或 Production。它需要：
+
+- `DATABASE_URL`：啟用 TLS 的 PostgreSQL 連線；程式會拒絕 `sslmode=disable`；
+- `HEALTH_SYNC_TOKEN_SECRET`：最少 32 字元，用於加密／驗證每裝置同步憑證；
+- `HEALTH_SYNC_CURSOR_SECRET`：最少 32 字元，用於簽署不透明同步 cursor。
+
+秘密只可放在 Vercel 對應環境的 encrypted environment variables，不得加入 `.env` 範例值、Git、前端 `VITE_*` 變數或 iPhone Shortcut 網址。Preview 與 Production 必須使用不同秘密及資料庫（或至少不同嚴格隔離的 schema／角色）。
+
+在獲得明確確認、備份並核對目標資料庫後，才可對 Preview 執行：
+
+```bash
+pnpm db:private:apply
+```
+
+腳本會依序套用尚未記錄的私人 schema migration，包括 `health-sync-v1`；不可在本機測試時把 Production `DATABASE_URL` 暴露到 shell history 或 log。套用後先以非敏感測試帳戶驗證：未授權為 401、跨成員／跨裝置被拒、相同請求可安全重試、私人讀取只回傳本人紀錄。最後才使用 iPhone HealthBridge 傳送一個真實但最小的日級聚合，核對 API 收據、資料庫 row 與 Dashboard 顯示三者一致。
+
+目前不應把此分支 promote 至 `health.pui-pui.org`，也不應宣稱有固定更新頻率。手動同步成功後才加入 HealthKit background delivery；實際背景執行時間由 iOS 決定。
+
 ## 上線前檢查
 
 - HTTPS 正常
@@ -80,3 +100,5 @@ Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備
 - 清楚顯示「Demo Data · 非真實資料」
 - 沒有 analytics、廣告或真實健康資料進入 Git
 - `/api/`、`/mcp` 及 `/.well-known/` 不被 PWA navigation fallback 或 runtime cache 接管
+- Health sync Preview 已通過未授權、跨成員、跨裝置、重試及修正值負面測試
+- 至少一個新 iPhone 請求具有 API 收據、已保存資料庫 row 及 Dashboard 顯示證據

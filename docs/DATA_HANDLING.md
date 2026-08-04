@@ -14,6 +14,25 @@
 6. `client_request_id` 經 HMAC 處理，用於重試去重；相同圖片亦以內容 hash 去重。
 7. Dashboard 以加密 HttpOnly session 從 `/api/private/meals` 讀取該成員的私人餐食摘要；縮圖經短效、再次核對擁有人的 `/api/private/photo` 代理讀取。
 
+## 私人 Apple Health 日級同步（第二階段）
+
+目前分支已建立後端 contract，但尚未部署或連接真機。預定資料流是：獲使用者逐類型授權的 iOS Companion App 在裝置內將 HealthKit 資料彙總成每日數字，再以每成員、每裝置的可撤銷 Bearer 憑證傳送至 `/api/health-sync/v1/days`。
+
+第一版只接受：
+
+- 步數；
+- 活動能量（kcal）；
+- 運動分鐘；
+- 睡眠時數；
+- 體重（kg）；
+- 體脂率（%）。
+
+每個同步日必須包含嚴格 `YYYY-MM-DD` 本地日期、IANA 時區及帶 offset 的來源更新時間。未提供的 metric 代表「這次不更新」；數值 `0` 是有效觀測，不能與缺失混為一談；JSON `null` 不接受。較新的 HealthKit 聚合可用較低數值修正舊紀錄，較舊來源時間則不覆蓋較新資料。
+
+不收集原始 HealthKit samples、sample UUID、逐分鐘時間線、來源 App 名稱、裝置序號、廣告識別碼或未列入 contract 的健康資料。資料庫以 Auth0 衍生的不透明 owner ID 分隔成員，四張健康同步資料表均強制 RLS。同步 token 只應保存於 iOS Keychain；伺服器只保存 token hash，日誌只記錄追蹤 ID、雜湊裝置識別、日數、狀態及耗時，不記錄健康數值。
+
+相同 `sync_id` 與相同 payload digest 的重試會回傳原有結果；相同 `sync_id` 配上不同內容會拒絕並回傳衝突。這項設計只證明預期行為，仍須經 Preview migration、真實 iPhone 請求及資料庫保存收據才可稱為已接通。
+
 ## 匯出、版本與遷移
 
 - JSON envelope、CSV 轉換與 schema migration 函數保留作內部能力，公開介面不提供相關控制。
