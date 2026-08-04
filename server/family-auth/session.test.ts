@@ -24,6 +24,23 @@ function config(baseUrl = 'https://preview.example.com') {
   });
 }
 
+function tamperCompactJwe(token: string): string {
+  const parts = token.split('.');
+  const ciphertext = parts[3];
+  if (!ciphertext) throw new Error('Expected a compact JWE ciphertext.');
+  parts[3] = `${ciphertext[0] === 'A' ? 'B' : 'A'}${ciphertext.slice(1)}`;
+  return parts.join('.');
+}
+
+function tamperCookieToken(cookie: string): string {
+  const valueStart = cookie.indexOf('=') + 1;
+  const valueEnd = cookie.indexOf(';', valueStart);
+  if (valueStart === 0 || valueEnd < 0) throw new Error('Expected a serialized cookie.');
+  return `${cookie.slice(0, valueStart)}${tamperCompactJwe(
+    cookie.slice(valueStart, valueEnd)
+  )}${cookie.slice(valueEnd)}`;
+}
+
 describe('family encrypted browser state', () => {
   it('round-trips a secure server-only family session', async () => {
     const authConfig = config();
@@ -62,9 +79,7 @@ describe('family encrypted browser state', () => {
       },
       authConfig
     );
-    const tampered = cookie.replace(/([A-Za-z0-9_-])(?=;)/, (value) =>
-      value === 'A' ? 'B' : 'A'
-    );
+    const tampered = tamperCookieToken(cookie);
 
     await expect(readFamilySession(tampered, authConfig)).resolves.toBeUndefined();
     await expect(
@@ -113,8 +128,6 @@ describe('family encrypted browser state', () => {
       ownerId: 'member-a',
       assetId: 'asset-a'
     });
-    await expect(
-      readPhotoLocator(`${token.slice(0, -1)}x`, authConfig)
-    ).resolves.toBeUndefined();
+    await expect(readPhotoLocator(tamperCompactJwe(token), authConfig)).resolves.toBeUndefined();
   });
 });
