@@ -174,6 +174,51 @@ small { font-size: 0.78em; }
   padding: 44px clamp(24px, 5vw, 72px) 72px;
 }
 .page-stack { display: grid; gap: 24px; }
+.health-sync-status {
+  min-width: 0;
+  min-height: 68px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, var(--line));
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--teal-soft) 56%, var(--surface));
+  color: var(--teal-dark);
+}
+.health-sync-status > div { min-width: 0; display: grid; gap: 2px; }
+.health-sync-status strong { font-size: .9rem; }
+.health-sync-status span { color: var(--muted); font-size: .78rem; line-height: 1.45; }
+.health-sync-status.sync-error {
+  border-color: color-mix(in srgb, var(--coral) 34%, var(--line));
+  background: color-mix(in srgb, var(--coral-soft) 55%, var(--surface));
+  color: var(--coral);
+}
+.private-data-label {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--teal-dark) !important;
+  font-weight: 760;
+}
+.sync-retry-button {
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 720;
+}
+.sync-spinner { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .hero-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(290px, .8fr); gap: 22px; }
 .score-panel, .action-panel, .chart-section, .summary-panel, .priorities-section, .form-section {
   border: 1px solid var(--line);
@@ -566,6 +611,8 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
   .icon-button { width: 38px; height: 38px; }
   .main-content { padding: 26px 18px 34px; overflow-x: clip; }
   .page-stack { gap: 19px; }
+  .health-sync-status { align-items: flex-start; flex-wrap: wrap; }
+  .private-data-label, .sync-retry-button { margin-left: 34px; }
   .bottom-nav {
     position: fixed;
     z-index: 20;

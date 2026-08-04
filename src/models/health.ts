@@ -15,7 +15,7 @@ export interface DailyHealthRecord {
   noSugaryDrink?: boolean;
   noLateNightMeal?: boolean;
   notes?: string;
-  source?: 'demo' | 'manual' | 'imported' | 'chatgpt';
+  source?: 'demo' | 'manual' | 'imported' | 'chatgpt' | 'healthkit';
   createdAt: string;
   updatedAt: string;
 }

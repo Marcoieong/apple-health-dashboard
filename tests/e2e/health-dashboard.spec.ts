@@ -37,7 +37,7 @@ test('公開 Dashboard 為唯讀，不顯示人工輸入控制', async ({ page }
   await page.reload();
 
   await expect(page.getByRole('heading', { name: '尚未有健康紀錄' })).toBeVisible();
-  await expect(page.getByText('健康紀錄將由私人 iPhone Shortcut 流程導入')).toBeVisible();
+  await expect(page.getByText('健康紀錄將由私人 iPhone 同步流程導入')).toBeVisible();
   await expect(page.getByRole('button', { name: /新增|輸入|匯入/ })).toHaveCount(0);
 });
 
@@ -127,6 +127,25 @@ test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({
       }),
     });
   });
+  await page.route('**/api/private/health', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
+        days: [],
+      }),
+    });
+  });
+  await page.route('**/api/private/health/sync-status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ devices: [] }),
+    });
+  });
   await page.route('**/api/private/shortcut-credentials', async (route) => {
     await route.fulfill({
       status: 200,
@@ -155,6 +174,77 @@ test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({
   expect(browserStorage.session).not.toContain('signed-locator');
   expect(browserStorage.local).not.toContain('member@example.com');
   expect(browserStorage.session).not.toContain('member@example.com');
+});
+
+test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Data', async ({ page }) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/meals', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ meals: [] }),
+    });
+  });
+  await page.route('**/api/private/health', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
+        days: [
+          {
+            local_date: '2030-01-02',
+            timezone: 'Asia/Macau',
+            source_updated_at: '2030-01-02T13:00:00.000Z',
+            steps: 12345,
+            active_energy_kcal: 678,
+            exercise_minutes: 46,
+            sleep_hours: 7.75,
+            weight_kg: 96.8,
+            body_fat_percent: 31.9,
+          },
+        ],
+      }),
+    });
+  });
+  await page.route('**/api/private/health/sync-status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        devices: [
+          {
+            deviceInstallationId: 'private-device-id-must-not-render',
+            lastCollectedAt: '2030-01-02T12:55:00.000Z',
+            lastSyncAt: '2030-01-02T13:00:00.000Z',
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.goto('/');
+
+  await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
+  await expect(page.getByText('1 部裝置')).toBeVisible();
+  await expect(page.getByText('12,345 步', { exact: true })).toBeVisible();
+  await expect(page.getByText('Demo Data · 非真實資料')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('private-device-id-must-not-render');
 });
 
 test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {

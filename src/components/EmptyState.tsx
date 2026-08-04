@@ -8,7 +8,7 @@ export function EmptyState() {
       </span>
       <p className="eyebrow">同步狀態</p>
       <h2 id="empty-title">尚未有健康紀錄</h2>
-      <p>健康紀錄將由私人 iPhone Shortcut 流程導入；此網站不提供人工輸入。</p>
+      <p>健康紀錄將由私人 iPhone 同步流程導入；此網站不提供人工輸入。</p>
     </section>
   );
 }
