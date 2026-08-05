@@ -12,9 +12,11 @@
 - 每成員、每裝置的可撤銷同步憑證；
 - PostgreSQL schema、強制 RLS、冪等請求紀錄及裝置 cursor；
 - 寫入、私人健康資料讀取、同步狀態及裝置管理 API；
+- 登入後 Dashboard 只顯示該成員私人健康紀錄，且不與 Demo Data 混合；
+- ChatGPT OAuth `health.read` 的唯讀日級摘要及同步狀態工具，不回傳裝置識別；
 - 部分欄位更新、較新 HealthKit 修正值及重試去重規則的單元測試。
 
-這只代表程式碼已準備接受審核，**不代表已套用 Preview／Production 資料庫，也不代表已連接 iPhone HealthKit**。下一個工程里程碑是建立最小原生 iOS Companion App，先用「手動同步」在 Preview 完成一個真實請求、資料庫保存及 Dashboard 顯示的閉環；其後才評估背景同步。
+這只代表程式碼已準備接受審核，**不代表已套用 Preview／Production 資料庫、更新 ChatGPT Connector，也不代表已連接 iPhone HealthKit**。下一個工程里程碑是建立最小原生 iOS Companion App，先用「手動同步」在 Preview 完成一個真實請求、資料庫保存、Dashboard 顯示及 ChatGPT 同日摘要的閉環；其後才評估背景同步。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 

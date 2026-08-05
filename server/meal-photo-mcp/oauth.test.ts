@@ -29,19 +29,19 @@ describe('ChatGPT MCP OAuth helpers', () => {
     ]);
   });
 
-  it('advertises the protected-resource metadata and write scope', () => {
+  it('advertises the protected-resource metadata and least-privilege scopes', () => {
     const config: ChatGptMcpRuntimeConfig = {
       resourceUrl: new URL('https://health.pui-pui.org/mcp'),
       authorizationServer: new URL('https://login.example.com/'),
       issuer: 'https://login.example.com/',
       audience: 'https://health.pui-pui.org/api/mcp',
       jwksUri: new URL('https://login.example.com/jwks.json'),
-      ownerHmacSecret: 'test-secret',
+      ownerId: 'existing-marco-owner',
       allowedSubject: 'auth0|owner'
     };
 
     expect(buildWwwAuthenticate(config)).toBe(
-      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="meal.write"'
+      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read meal.write"'
     );
   });
 });

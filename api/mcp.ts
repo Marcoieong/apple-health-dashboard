@@ -2,6 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
+  listPrivateHealthDays,
+  listPrivateHealthSyncStatus,
+  loadHealthReadConfig
+} from '../server/health-sync/index.js';
+import {
   buildWwwAuthenticate,
   createProductionRecordMealDependencies,
   createMealMcpServer,
@@ -73,16 +78,21 @@ export default async function handler(
     return;
   }
 
-  if (readiness.state !== 'ready') {
-    sendJson(response, 503, {
-      error: 'service_locked',
-      message: 'ChatGPT MCP private ingest is not fully configured.'
-    });
-    return;
-  }
-
-  const server = createMealMcpServer((input, auth) =>
-    recordMeal(input, auth, getDependencies())
+  const healthReadConfig = readiness.healthReadConfigured
+    ? loadHealthReadConfig()
+    : undefined;
+  const server = createMealMcpServer(
+    readiness.mealWriteConfigured
+      ? (input, auth) => recordMeal(input, auth, getDependencies())
+      : undefined,
+    healthReadConfig
+      ? {
+          listDays: (ownerId, from, to) =>
+            listPrivateHealthDays(ownerId, from, to, healthReadConfig),
+          listSyncStatus: (ownerId) =>
+            listPrivateHealthSyncStatus(ownerId, healthReadConfig)
+        }
+      : undefined
   );
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined

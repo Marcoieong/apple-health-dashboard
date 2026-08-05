@@ -1,99 +1,103 @@
-# ChatGPT 私人接入指南
+# ChatGPT 私人健康接入指南
 
-## 現況
+## 能力與狀態
 
-Vercel 版本提供標準 Streamable HTTP MCP endpoint：
+`codex/health-sync-phase2` 分支提供標準 Streamable HTTP MCP endpoint：
 
 ```text
 https://<deployment-domain>/mcp
 ```
 
-以及：
+目前工具分為兩組：
+
+- `get_health_summary`：按最近 1–31 日讀取已保存的私人日級健康摘要；唯讀，需要 `health.read`。
+- `get_health_sync_status`：讀取最近同步時間、資料日期及狀態；唯讀，需要 `health.read`，不回傳裝置識別。
+- `record_meal`：保存餐食 metadata 及相片；寫入，需要 `meal.write`。
+
+這些是分支內已測試的程式能力，**尚未代表正式 Connector 已更新或 iPhone HealthKit 已接通**。ChatGPT 只在使用者對話中呼叫工具時讀取資料，不會定時同步，也不能直接讀取 HealthKit。真正的資料來源是獲授權的 iOS HealthBridge；它先把日級聚合送到私人 API，ChatGPT 才能讀取。
+
+`GET /api/chatgpt-status` 只回傳 OAuth 與私人 adapters 是否配置，不回傳網址、token、secret、owner ID 或健康資料。缺少任何必要設定時系統 fail closed。
+
+## OAuth 與最小權限
+
+身份服務必須支援 OAuth 2.1、Authorization Code、PKCE S256、OIDC discovery 及 JWT access token。Auth0 API 應建立：
 
 ```text
-GET /.well-known/oauth-protected-resource
-GET /api/chatgpt-status
+Audience: https://health.pui-pui.org/api/mcp
+Permissions: health.read, meal.write
 ```
 
-`/api/chatgpt-status` 只回傳是否已配置 OAuth 與私人 storage adapters，
-不回傳網址、token、secret 或使用者資料。系統採 fail-closed：未完成設定時
-`/mcp` 不接受寫入；只有 OAuth 完整時才發布 protected-resource metadata。
-即使 token 驗證成功，私人 adapters 未接通前 `record_meal` 亦不下載或保存
-附件。
+只作健康分析的 Connector 應只要求 `health.read`。每個 MCP 工具會再次檢查自己的 scope；持有 `health.read` 不代表可以記錄餐食，持有 `meal.write` 亦不能讀取健康摘要。
 
-## 身份服務要求
+目前只開放 Marco 的精確 Auth0 `sub`。家庭成員不得共用 Marco 的 Connector 或 owner ID；每人映射及跨帳戶負面測試完成前，家庭 Connector 保持關閉。
 
-正式接入應使用支援 OAuth 2.1、Authorization Code、PKCE S256、OIDC discovery
-及 JWT access token 的身份服務。可選 Auth0 等成熟供應商；不要自行製作密碼
-系統，也不要用查詢參數或自訂 API key 代替 OAuth。
+## Marco 的固定 owner 映射
 
-身份服務已建立：
+現有餐食、Dashboard、iPhone HealthBridge 與 ChatGPT 必須使用完全相同的資料庫 owner ID：
 
-- Auth0 tenant：`https://dev-05zm8suie07wtqx1.us.auth0.com/`。
-- API audience：`https://health.pui-pui.org/api/mcp`。
-- scope：`meal.write`。
-- 唯一使用者帳戶：以 `marco@pui-pui.org` 登入。
-- OAuth 應用 Client ID：`tpc_gom9DiAg2QWUjsGrCMmqtd`（非秘密值）。
-- ChatGPT OAuth callback allowlist：只加入 ChatGPT 建立 connector 時顯示的
-  精確 callback URL。
+```text
+CHATGPT_MCP_OWNER_ID
+AUTH0_WEB_LEGACY_OWNER_ID
+SHORTCUT_OWNER_ID
+```
 
-取得 callback 後再加入 Auth0，不能預先用 wildcard 放行。Client Secret 只可
-在 Auth0 與 ChatGPT 的受保護欄位之間傳遞，不可寫入本機文件或 Git。
+Marco 過渡期間三者必須是同一現有值。這個值是私人識別，不可寫入 Git、文件、截圖或前端環境變數。程式同時檢查 `CHATGPT_MCP_ALLOWED_SUBJECT`；固定 owner ID 不能繞過 Auth0 身份驗證。
+
+家庭成員則由家庭登入系統取得各自 owner ID，不能複製 Marco 的設定。未來若開放家庭 ChatGPT，需要建立經審核的 Auth0 subject-to-owner 映射，而不是讓一個固定 owner ID 接受多個 subject。
 
 ## Vercel 環境變數
 
-把 `.env.example` 的值加入 Vercel Preview 環境。不要把實際值提交至 Git：
+先在隔離的 Preview 設定；不要先改 Production：
 
 ```text
-CHATGPT_MCP_RESOURCE_URL=https://health.pui-pui.org/mcp
-CHATGPT_MCP_AUTHORIZATION_SERVER=https://dev-05zm8suie07wtqx1.us.auth0.com/
-CHATGPT_MCP_ISSUER=https://dev-05zm8suie07wtqx1.us.auth0.com/
+CHATGPT_MCP_RESOURCE_URL=https://<preview-domain>/mcp
+CHATGPT_MCP_AUTHORIZATION_SERVER=https://<auth-domain>/
+CHATGPT_MCP_ISSUER=https://<auth-domain>/
 CHATGPT_MCP_AUDIENCE=https://health.pui-pui.org/api/mcp
-CHATGPT_MCP_JWKS_URI=https://dev-05zm8suie07wtqx1.us.auth0.com/.well-known/jwks.json
-CHATGPT_MCP_OWNER_HMAC_SECRET=<至少 32 bytes 隨機值>
-CHATGPT_MCP_ALLOWED_SUBJECT=<Auth0 中 marco@pui-pui.org 的精確 user_id>
+CHATGPT_MCP_JWKS_URI=https://<auth-domain>/.well-known/jwks.json
+CHATGPT_MCP_ALLOWED_SUBJECT=<Marco 的精確 Auth0 user_id>
+CHATGPT_MCP_OWNER_ID=<與現有 Marco owner ID 完全相同>
+DATABASE_URL=<Preview 私人 PostgreSQL URL>
 ```
 
-私人資料層接通後才加入：
+上述設定足以啟用唯讀健康工具。只有啟用 `record_meal` 時才另加：
 
 ```text
 CHATGPT_MCP_INGEST_HMAC_SECRET=<至少 32 bytes 隨機值>
-DATABASE_URL=<Neon 私人 PostgreSQL URL；Vercel integration 自動管理>
-BLOB_READ_WRITE_TOKEN=<Vercel private Blob token；Vercel 自動管理>
-CHATGPT_MCP_ATTACHMENT_HOSTS=<ChatGPT 附件下載 host allowlist>
+BLOB_READ_WRITE_TOKEN=<Preview private Blob token>
+CHATGPT_MCP_ATTACHMENT_HOSTS=<ChatGPT 附件 host allowlist>
 ```
 
-不要把 integration 自動建立的 token 複製到文件、Git 或公開前端。程式只在
-OAuth、單一帳戶限制、PostgreSQL、private Blob 及附件 host allowlist 全部
-設定後才把 readiness 改為 `ready`。
+只有 Apple Health 寫入 API／HealthBridge 才需要：
 
-## ChatGPT 連接
+```text
+HEALTH_SYNC_TOKEN_SECRET=<至少 32 字元>
+HEALTH_SYNC_CURSOR_SECRET=<至少 32 字元>
+```
 
-1. 先確認 `GET /api/chatgpt-status` 顯示 `authConfigured: true`。
-2. 在 ChatGPT 的 Apps／Connectors 開發設定新增 MCP server URL：
-   `https://health.pui-pui.org/mcp`。
-3. 完成 OAuth 登入及同意 `meal.write`。
-4. 確認 ChatGPT 能看到 `record_meal`，而且工具標示為寫入、非破壞性及
-   可重試。
-5. 在私人 adapters 完成前，只測試工具發現、OAuth 及安全鎖定；不要提交
-   真實照片。
+Preview 與 Production 使用不同秘密。任何 integration token、owner ID 或 access token 均不可交給 React、放入 `VITE_*`、localStorage、Git 或公開文件。
+
+## ChatGPT Connector 設定
+
+1. 在 Preview 確認 `/api/chatgpt-status` 的 `healthReadConfigured` 為 `true`；需要餐食寫入時再確認 `mealWriteConfigured`。
+2. 在 Auth0 API 加入 `health.read` 與 `meal.write` permissions。
+3. 在 ChatGPT Apps／Connectors 開發設定加入 Preview MCP URL。
+4. 只讀健康 Connector 只同意 `health.read`；需要餐食寫入時才另加 `meal.write`。
+5. 確認能看見兩個唯讀健康工具，並顯示 read-only、non-destructive。
+6. 先用非敏感測試資料驗證；不要直接 promote 至 `health.pui-pui.org`。
 
 ## 端到端驗收
 
-正式容許一餐真實資料前，以下項目必須全部通過：
+正式聲稱「ChatGPT 已接入健康資料」前，必須全部通過：
 
-- 無 token、錯誤 issuer、錯誤 audience、過期 token、缺 `meal.write` 均被拒。
-- 同一 `client_request_id` 重試不建立重複餐食或圖片。
-- JPEG／PNG／WebP 以 magic bytes 及解碼確認，非圖片與超過 20 MB 被拒。
-- redirect、private IP、loopback、link-local 及 DNS rebinding 被拒。
-- EXIF、GPS、XMP、IPTC 已移除；來源 bytes 與短效 URL 不落盤、不入 log。
-- 資料庫 RLS 及 owner mapping 的跨帳戶負面測試通過。
-- 刪除餐食、刪除帳戶及 30 日 master lifecycle 實際可執行。
-- iPhone ChatGPT 以「記錄這餐」觸發工具，澳門日期與餐別正確。
-- 網站只能經已認證 API 讀取縮圖，不取得 object-storage URL。
-- `pnpm privacy:scan`、單元測試、build 與手機視圖檢查全數通過。
+- 無 token、錯誤 issuer／audience、過期 token、錯誤 subject 均被拒。
+- 缺 `health.read` 不能呼叫健康工具；缺 `meal.write` 不能呼叫餐食寫入。
+- Marco Connector 只讀取 Marco owner；另一帳戶、另一 owner 及另一裝置均不能越界。
+- 缺失值保持缺失，真實數值 `0` 不被當成缺失；澳門日期範圍正確。
+- ChatGPT 回應不包含 owner ID、裝置 ID、token、資料庫 ID 或原始 HealthKit samples。
+- 一個全新的 iPhone 同步具有 API 收據、已保存資料庫 row、Dashboard 同日顯示及 ChatGPT 同日摘要四項一致證據。
+- `pnpm privacy:scan`、單元測試、build、E2E 與手機視圖全部通過。
 
 ## 產品邊界
 
-`record_meal` 只記錄食物種類、烹調方式、餐別與可選備註，不估算卡路里、
-重量或份量，不提供醫療診斷。Apple Watch／Apple Health 數值同步屬另一階段。
+ChatGPT 是授權後的唯讀解讀層，不是健康資料來源、排程器或醫療系統。它不會修改 Apple Health，不提供疾病診斷，也不承諾固定更新時間。健康資料更新頻率取決於 iOS HealthBridge 實際成功同步；ChatGPT 只在工具被呼叫時讀取當時已保存的最新資料。

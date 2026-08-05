@@ -17,7 +17,7 @@
 - iPhone Shortcut 導入：每位成員可建立及撤銷自己的 Bearer 金鑰；Base64 圖片會清除 EXIF/GPS、重試去重並存入私人儲存
 - 私人唯讀日誌：登入後只讀取該成員自己的餐食摘要與短效受保護縮圖
 - HealthKit 同步後端（開發分支）：日級聚合 contract、每裝置憑證、PostgreSQL RLS、冪等寫入、私人讀取及同步狀態 API；尚未部署或連接真機
-- ChatGPT 導入預留：MCP/OAuth 接口保留，但不宣稱 Pro 帳戶已支援手機自訂 MCP 寫入
+- ChatGPT 唯讀健康工具（開發分支）：OAuth `health.read` 可讀取日級摘要與同步狀態；按需讀取已保存資料，尚未更新正式 Connector
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
 - 基礎 PWA：manifest、service worker、standalone 顯示與離線開啟已建置內容
 
@@ -31,7 +31,7 @@
 - Playwright Chromium 端到端與響應式測試
 - Vite PWA plugin
 
-主要模組位於 `src/features`、`src/lib`、`src/models` 及 `src/services`。評分是純函數；預留的本機儲存與資料轉換集中在 service，React 元件不直接操作 `localStorage`。公開介面只讀取資料，不暴露修改控制。
+主要模組位於 `src/features`、`src/lib`、`src/models` 及 `src/services`。評分是純函數；預留的本機儲存與資料轉換集中在 service，React 元件不直接操作 `localStorage`。公開介面只讀取資料，不暴露修改控制。完整資料流、更新時機及交付狀態見 [系統架構](docs/SYSTEM_ARCHITECTURE.md)。
 
 ## 安裝與啟動
 
@@ -90,6 +90,7 @@ pnpm exec playwright install chromium
 - Dashboard 登入後只讀取該成員的餐食標籤、日期、餐別、備註及短效受保護縮圖；圖片不使用公開 Blob URL。
 - 公開部署不會在未確認私隱方案前放入真實個人健康資料。
 - HealthKit 第二階段只接受已批准的日級聚合，不接受原始 samples 或逐分鐘時間線；缺失欄位不覆蓋既有值，`0` 則保留為有效觀測。
+- ChatGPT 只在工具被呼叫時讀取資料庫內最新摘要，不會直接讀 HealthKit，也不是排程同步服務。
 
 目前飲食照片部分已完成資料 contract、Shortcut 寫入端點、私人資料庫、私人物件儲存、圖片清理、家庭登入、成員隔離、唯讀摘要及受保護縮圖。缺少身份、秘密或私人儲存設定時，端點會 fail closed。操作見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md) 與 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)；完整設計見 [食物照片架構](docs/FOOD_PHOTO_ARCHITECTURE.md)、[資料處理說明](docs/DATA_HANDLING.md) 與 [隱私說明](docs/PRIVACY.md)。
 
@@ -106,8 +107,8 @@ pnpm exec playwright install chromium
 - Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
 - 家庭邀請目前由部署 allowlist 管理，尚未提供管理員自助邀請頁
 - 各成員可撤銷自己的 iPhone 金鑰，但餐食自助刪除及家庭資料匯出仍未完成
-- ChatGPT 自訂 MCP 寫入仍未作為正式手機入口
-- 沒有 AI 自動分析
+- ChatGPT 唯讀健康工具已在開發分支完成，但尚未部署 Preview、更新 Connector 或取得真實 Apple Health 閉環證據
+- 沒有定時 AI 自動分析；ChatGPT 只在對話中獲授權呼叫時按需解讀
 - PWA 離線只保證已快取介面可開啟；私人 `/api/` 資料明確不進 service worker cache
 - 月度比較只依賴可讀取的紀錄；缺失欄位會以「—」顯示
 

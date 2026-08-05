@@ -5,6 +5,17 @@ import type {
   RecordMealInput,
   RecordMealResult
 } from './contracts.js';
+import {
+  getHealthSummary,
+  getHealthSyncSummary,
+  healthSummaryInputSchema,
+  healthSummaryOutputSchema,
+  healthSummaryToolDescriptor,
+  healthSyncStatusInputSchema,
+  healthSyncStatusOutputSchema,
+  healthSyncStatusToolDescriptor,
+  type HealthReadDependencies
+} from './healthReadTools.js';
 import { recordMealToolDescriptor } from './toolDescriptor.js';
 
 const fileParamSchema = z
@@ -45,7 +56,8 @@ export type ExecuteRecordMeal = (
 ) => Promise<RecordMealResult>;
 
 export function createMealMcpServer(
-  executeRecordMeal?: ExecuteRecordMeal
+  executeRecordMeal?: ExecuteRecordMeal,
+  healthReadDependencies?: HealthReadDependencies
 ): McpServer {
   const server = new McpServer({
     name: 'personal-health-dashboard',
@@ -98,6 +110,99 @@ export function createMealMcpServer(
               result.status === 'recorded'
                 ? '餐食已安全記錄。'
                 : '這餐已記錄，沒有重複新增。'
+          }
+        ],
+        structuredContent: { ...result }
+      };
+    }
+  );
+
+  server.registerTool(
+    healthSummaryToolDescriptor.name,
+    {
+      title: healthSummaryToolDescriptor.title,
+      description: healthSummaryToolDescriptor.description,
+      inputSchema: healthSummaryInputSchema,
+      outputSchema: healthSummaryOutputSchema,
+      annotations: healthSummaryToolDescriptor.annotations,
+      _meta: healthSummaryToolDescriptor._meta
+    },
+    async ({ days }, extra) => {
+      const ownerId = extra.authInfo?.extra?.ownerId;
+      if (
+        typeof ownerId !== 'string' ||
+        !extra.authInfo?.scopes.includes('health.read')
+      ) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: '需要 health.read 授權。' }]
+        };
+      }
+      if (!healthReadDependencies) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: '私人健康資料讀取尚未啟用。' }]
+        };
+      }
+      const result = await getHealthSummary(
+        ownerId,
+        days,
+        healthReadDependencies
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              result.days_with_data === 0
+                ? '所選期間尚沒有 Apple Health 同步資料。'
+                : `已讀取 ${result.days_with_data} 日私人健康資料。`
+          }
+        ],
+        structuredContent: { ...result }
+      };
+    }
+  );
+
+  server.registerTool(
+    healthSyncStatusToolDescriptor.name,
+    {
+      title: healthSyncStatusToolDescriptor.title,
+      description: healthSyncStatusToolDescriptor.description,
+      inputSchema: healthSyncStatusInputSchema,
+      outputSchema: healthSyncStatusOutputSchema,
+      annotations: healthSyncStatusToolDescriptor.annotations,
+      _meta: healthSyncStatusToolDescriptor._meta
+    },
+    async (_input, extra) => {
+      const ownerId = extra.authInfo?.extra?.ownerId;
+      if (
+        typeof ownerId !== 'string' ||
+        !extra.authInfo?.scopes.includes('health.read')
+      ) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: '需要 health.read 授權。' }]
+        };
+      }
+      if (!healthReadDependencies) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: '私人健康資料讀取尚未啟用。' }]
+        };
+      }
+      const result = await getHealthSyncSummary(
+        ownerId,
+        healthReadDependencies
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              result.status === 'synced'
+                ? 'Apple Health 最近同步狀態已讀取。'
+                : '尚未收到 Apple Health 同步。'
           }
         ],
         structuredContent: { ...result }

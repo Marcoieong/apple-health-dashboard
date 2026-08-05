@@ -1,4 +1,3 @@
-import { createHmac } from 'node:crypto';
 import {
   createRemoteJWKSet,
   jwtVerify,
@@ -6,7 +5,7 @@ import {
 } from 'jose';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import {
-  MEAL_WRITE_SCOPE,
+  SUPPORTED_MCP_SCOPES,
   type ChatGptMcpRuntimeConfig
 } from './runtimeConfig.js';
 
@@ -50,16 +49,6 @@ export function extractScopes(payload: JWTPayload): string[] {
   return [...scopes];
 }
 
-function ownerIdFor(
-  issuer: string,
-  subject: string,
-  secret: string
-): string {
-  return createHmac('sha256', secret)
-    .update(`${issuer}\0${subject}`)
-    .digest('hex');
-}
-
 function clientIdFor(payload: JWTPayload): string {
   if (typeof payload.client_id === 'string') {
     return payload.client_id;
@@ -87,8 +76,8 @@ export async function verifyMcpAccessToken(
   }
 
   const scopes = extractScopes(verified.payload);
-  if (!scopes.includes(MEAL_WRITE_SCOPE)) {
-    throw new Error('Access token is missing meal.write.');
+  if (!SUPPORTED_MCP_SCOPES.some((scope) => scopes.includes(scope))) {
+    throw new Error('Access token has no supported health scope.');
   }
 
   return {
@@ -98,7 +87,7 @@ export async function verifyMcpAccessToken(
     expiresAt: verified.payload.exp,
     resource: config.resourceUrl,
     extra: {
-      ownerId: ownerIdFor(config.issuer, subject, config.ownerHmacSecret)
+      ownerId: config.ownerId
     }
   };
 }
@@ -108,5 +97,5 @@ export function buildWwwAuthenticate(config: ChatGptMcpRuntimeConfig): string {
     '/.well-known/oauth-protected-resource',
     config.resourceUrl
   );
-  return `Bearer resource_metadata="${metadataUrl.href}", scope="${MEAL_WRITE_SCOPE}"`;
+  return `Bearer resource_metadata="${metadataUrl.href}", scope="${SUPPORTED_MCP_SCOPES.join(' ')}"`;
 }

@@ -59,7 +59,7 @@ Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備
 
 允許真實資料前最少要完成：
 
-1. OAuth protected-resource metadata、`meal.write` 與 `meal.read` scope。
+1. OAuth protected-resource metadata、唯讀 `health.read` 與寫入 `meal.write` scope。
 2. owner mapping、row-level security 及跨帳戶負面測試。
 3. 短效 URL 安全下載、magic-byte／解碼檢查、EXIF/GPS 移除及縮圖工作。
 4. 私人儲存 lifecycle、30 日 master 刪除及使用者刪除流程。
@@ -87,6 +87,8 @@ pnpm db:private:apply
 腳本會依序套用尚未記錄的私人 schema migration，包括 `health-sync-v1`；不可在本機測試時把 Production `DATABASE_URL` 暴露到 shell history 或 log。套用後先以非敏感測試帳戶驗證：未授權為 401、跨成員／跨裝置被拒、相同請求可安全重試、私人讀取只回傳本人紀錄。最後才使用 iPhone HealthBridge 傳送一個真實但最小的日級聚合，核對 API 收據、資料庫 row 與 Dashboard 顯示三者一致。
 
 目前不應把此分支 promote 至 `health.pui-pui.org`，也不應宣稱有固定更新頻率。手動同步成功後才加入 HealthKit background delivery；實際背景執行時間由 iOS 決定。
+
+ChatGPT Preview 另須把 `CHATGPT_MCP_OWNER_ID` 設為 Marco 現有的 owner ID，並與 `AUTH0_WEB_LEGACY_OWNER_ID`／過渡期 `SHORTCUT_OWNER_ID` 完全一致。未完成這項核對時 MCP 應保持鎖定；不可用另一套 HMAC 推導後假設資料會自動對上。部署前先閱讀 [系統架構](SYSTEM_ARCHITECTURE.md) 與 [ChatGPT 接入指南](CHATGPT_CONNECTION.md)。
 
 ## 上線前檢查
 

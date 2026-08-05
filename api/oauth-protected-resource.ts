@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
-  MEAL_WRITE_SCOPE
+  SUPPORTED_MCP_SCOPES
 } from '../server/meal-photo-mcp/index.js';
 
 export default function handler(
@@ -30,7 +30,7 @@ export default function handler(
   response.status(200).json({
     resource: config.resourceUrl.href,
     authorization_servers: [config.authorizationServer.href],
-    scopes_supported: [MEAL_WRITE_SCOPE],
+    scopes_supported: [...SUPPORTED_MCP_SCOPES],
     bearer_methods_supported: ['header'],
     resource_name: '個人健康 Dashboard ChatGPT 導入'
   });

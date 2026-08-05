@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
-import type { HealthSyncConfig } from './config.js';
+import type { HealthReadConfig, HealthSyncConfig } from './config.js';
 import type {
   HealthSyncDayV1,
   HealthSyncInputV1,
@@ -290,7 +290,7 @@ export async function listPrivateHealthDays(
   ownerId: string,
   from: string,
   to: string,
-  config: HealthSyncConfig
+  config: HealthReadConfig
 ): Promise<PrivateHealthDayV1[]> {
   const sql = neon(config.databaseUrl);
   const results = await sql.transaction((tx) => [
@@ -310,7 +310,7 @@ export async function listPrivateHealthDays(
 
 export async function listPrivateHealthSyncStatus(
   ownerId: string,
-  config: HealthSyncConfig
+  config: HealthReadConfig
 ): Promise<PrivateHealthSyncStatus[]> {
   const sql = neon(config.databaseUrl);
   const results = await sql.transaction((tx) => [

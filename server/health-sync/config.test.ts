@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
-import { loadHealthSyncConfig } from './config.js';
+import { loadHealthReadConfig, loadHealthSyncConfig } from './config.js';
 
 const validEnv = {
   DATABASE_URL: 'postgresql://user:password@example.com/private?sslmode=require',
@@ -15,6 +15,12 @@ describe('Health sync configuration', () => {
     expect(config.databaseUrl).toContain('sslmode=require');
     expect(config.tokenKey).toHaveLength(32);
     expect(config.cursorSecret).toBe('c'.repeat(32));
+  });
+
+  it('loads read-only database access without sync secrets', () => {
+    expect(
+      loadHealthReadConfig({ DATABASE_URL: validEnv.DATABASE_URL }).databaseUrl
+    ).toContain('sslmode=require');
   });
 
   it.each([

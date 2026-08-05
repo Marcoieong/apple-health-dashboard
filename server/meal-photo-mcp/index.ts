@@ -1,4 +1,5 @@
 export * from './contracts.js';
+export * from './healthReadTools.js';
 export * from './ingest.js';
 export * from './mcpServer.js';
 export * from './oauth.js';

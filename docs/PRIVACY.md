@@ -8,8 +8,8 @@
 - 沒有分析追蹤工具
 - 沒有廣告
 - 沒有健康資料遙測
-- 沒有 Apple Health／HealthKit 連線
-- 沒有 Apple Health 指標上傳或自動跨裝置同步
+- 正式網站沒有 Apple Health／HealthKit 連線
+- 正式網站沒有 Apple Health 指標上傳或自動跨裝置同步；開發分支能力不等於已部署
 - 私人餐食只可由該成員自己的 Shortcut 金鑰寫入，並由該成員的登入 session 讀取
 
 ## 使用者責任
@@ -29,6 +29,10 @@ Dashboard 的私人 API 只向已登入的資料擁有人回傳餐食日期、�
 ## Demo Data
 
 首次載入的 14 日健康記錄與飲食照片佔位內容均為程式內的虛構示例，介面會顯示「Demo Data · 非真實資料」。它們不是 Apple Health 或真實飲食資料，也不代表任何真實個人的健康狀況。公開網站沒有新增或匯入真實資料的入口。
+
+## ChatGPT 健康讀取邊界
+
+開發分支的 ChatGPT 工具只可在 OAuth `health.read` 授權後讀取該 owner 已保存的日級摘要與同步狀態。回應不包含 owner ID、裝置 ID、token、資料庫 ID或原始 HealthKit samples。ChatGPT 不會定時同步、修改 Apple Health 或自行產生健康觀測；正式 Connector 更新前仍須完成 Preview 及真機端到端驗證。
 
 ## 健康資訊聲明
 

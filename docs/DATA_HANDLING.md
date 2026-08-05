@@ -33,6 +33,12 @@
 
 相同 `sync_id` 與相同 payload digest 的重試會回傳原有結果；相同 `sync_id` 配上不同內容會拒絕並回傳衝突。這項設計只證明預期行為，仍須經 Preview migration、真實 iPhone 請求及資料庫保存收據才可稱為已接通。
 
+## ChatGPT 私人唯讀健康流程
+
+開發分支提供 OAuth `health.read` 工具，只讀取資料庫內該 owner 已保存的日級聚合及同步狀態。ChatGPT 不直接讀 HealthKit、不觸發同步、不取得裝置識別、owner ID、原始 samples 或資料庫 ID。缺失值保持缺失；數值 `0` 是有效觀測。工具只在對話中被呼叫時讀取，沒有定時 AI 更新。
+
+Marco 過渡期的 `CHATGPT_MCP_OWNER_ID` 必須與家庭登入的 legacy owner 及現有 Shortcut owner 完全一致；家庭成員不可共用。正式聲稱接通前，仍須以一個全新 iPhone 請求核對 API 收據、資料庫 row、Dashboard 與 ChatGPT 同日摘要。
+
 ## 匯出、版本與遷移
 
 - JSON envelope、CSV 轉換與 schema migration 函數保留作內部能力，公開介面不提供相關控制。
@@ -47,7 +53,7 @@
 - 以使用者範圍的 idempotency key 及內容 hash 防止重試造成重複資料。
 - 網站只透過已認證的同源 API 讀取摘要與受保護縮圖，不提供直連 object storage。
 - Auth0 權杖及 Shortcut 金鑰不交給 React；網站登入只使用加密 HttpOnly session Cookie。
-- 現有 MCP/OAuth 程式碼保留作未來候選，但不參與目前 Shortcut 路徑。
+- MCP/OAuth 健康讀取是獨立候選路徑，不參與目前 Shortcut 餐食上傳，也不會令 ChatGPT 直接取得 HealthKit 權限。
 
 完整 contract、schema、保留政策與實作階段見 [食物照片架構](FOOD_PHOTO_ARCHITECTURE.md)。
 

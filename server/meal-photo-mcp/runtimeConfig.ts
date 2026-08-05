@@ -1,4 +1,6 @@
 export const MEAL_WRITE_SCOPE = 'meal.write';
+export const HEALTH_READ_SCOPE = 'health.read';
+export const SUPPORTED_MCP_SCOPES = [HEALTH_READ_SCOPE, MEAL_WRITE_SCOPE] as const;
 
 export interface ChatGptMcpRuntimeConfig {
   resourceUrl: URL;
@@ -6,7 +8,7 @@ export interface ChatGptMcpRuntimeConfig {
   issuer: string;
   audience: string;
   jwksUri: URL;
-  ownerHmacSecret: string;
+  ownerId: string;
   allowedSubject: string;
 }
 
@@ -23,7 +25,9 @@ export interface ChatGptMcpStorageConfig extends PrivateMealStorageConfig {
 export interface ChatGptMcpReadiness {
   state: 'locked' | 'auth_ready' | 'ready';
   authConfigured: boolean;
+  healthReadConfigured: boolean;
   privateStorageConfigured: boolean;
+  mealWriteConfigured: boolean;
   ingestAdaptersImplemented: boolean;
   publicWriteEnabled: false;
 }
@@ -34,7 +38,7 @@ const requiredAuthVariables = [
   'CHATGPT_MCP_ISSUER',
   'CHATGPT_MCP_AUDIENCE',
   'CHATGPT_MCP_JWKS_URI',
-  'CHATGPT_MCP_OWNER_HMAC_SECRET',
+  'CHATGPT_MCP_OWNER_ID',
   'CHATGPT_MCP_ALLOWED_SUBJECT'
 ] as const;
 
@@ -73,21 +77,37 @@ function secureUrl(value: string | undefined, name: string): URL {
   return url;
 }
 
+function secureOwnerId(value: string | undefined): string {
+  const ownerId = value?.trim();
+  const hasControlCharacter = [...(ownerId ?? '')].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+  if (!ownerId || ownerId.length > 128 || hasControlCharacter) {
+    throw new Error('CHATGPT_MCP_OWNER_ID is invalid.');
+  }
+  return ownerId;
+}
+
 export function getChatGptMcpReadiness(
   env: NodeJS.ProcessEnv = process.env,
   ingestAdaptersImplemented = false
 ): ChatGptMcpReadiness {
   const authConfigured = hasAll(env, requiredAuthVariables);
+  const healthReadConfigured = Boolean(getDatabaseUrl(env));
   const privateStorageConfigured =
     hasAll(env, requiredChatGptStorageVariables) &&
-    Boolean(getDatabaseUrl(env));
-  const ready =
-    authConfigured && privateStorageConfigured && ingestAdaptersImplemented;
+    healthReadConfigured;
+  const mealWriteConfigured =
+    privateStorageConfigured && ingestAdaptersImplemented;
+  const ready = authConfigured && (healthReadConfigured || mealWriteConfigured);
 
   return {
     state: ready ? 'ready' : authConfigured ? 'auth_ready' : 'locked',
     authConfigured,
+    healthReadConfigured,
     privateStorageConfigured,
+    mealWriteConfigured,
     ingestAdaptersImplemented,
     publicWriteEnabled: false
   };
@@ -112,7 +132,7 @@ export function loadChatGptMcpRuntimeConfig(
     issuer: env.CHATGPT_MCP_ISSUER as string,
     audience: env.CHATGPT_MCP_AUDIENCE as string,
     jwksUri: secureUrl(env.CHATGPT_MCP_JWKS_URI, 'CHATGPT_MCP_JWKS_URI'),
-    ownerHmacSecret: env.CHATGPT_MCP_OWNER_HMAC_SECRET as string,
+    ownerId: secureOwnerId(env.CHATGPT_MCP_OWNER_ID),
     allowedSubject: env.CHATGPT_MCP_ALLOWED_SUBJECT as string
   };
 }
