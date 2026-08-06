@@ -42,7 +42,10 @@ describe('Health sync device credentials', () => {
       openHealthSyncCredential(token, config('secret-two'))
     ).resolves.toBeUndefined();
     const segments = token.split('.');
-    segments[3] = `${segments[3].slice(0, -1)}${segments[3].endsWith('A') ? 'B' : 'A'}`;
+    const tamperIndex = Math.floor(segments[3].length / 2);
+    segments[3] = `${segments[3].slice(0, tamperIndex)}${
+      segments[3][tamperIndex] === 'A' ? 'B' : 'A'
+    }${segments[3].slice(tamperIndex + 1)}`;
     await expect(
       openHealthSyncCredential(segments.join('.'), config('secret-one'))
     ).resolves.toBeUndefined();
