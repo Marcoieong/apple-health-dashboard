@@ -66,6 +66,20 @@ describe('ChatGPT MCP runtime configuration', () => {
     );
   });
 
+  it('reuses the existing Shortcut owner mapping during the Marco migration', () => {
+    const env = {
+      ...completeAuth,
+      CHATGPT_MCP_OWNER_ID: undefined,
+      AUTH0_WEB_LEGACY_OWNER_ID: undefined,
+      SHORTCUT_OWNER_ID: 'existing-marco-owner'
+    };
+
+    expect(getChatGptMcpReadiness(env).authConfigured).toBe(true);
+    expect(loadChatGptMcpRuntimeConfig(env).ownerId).toBe(
+      'existing-marco-owner'
+    );
+  });
+
   it('prefers an explicit ChatGPT owner mapping when both are configured', () => {
     const config = loadChatGptMcpRuntimeConfig({
       ...completeAuth,

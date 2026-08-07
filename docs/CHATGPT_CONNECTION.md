@@ -42,7 +42,7 @@ AUTH0_WEB_LEGACY_OWNER_ID
 SHORTCUT_OWNER_ID
 ```
 
-Marco 過渡期間三者必須是同一現有值。若 Vercel 已有 `AUTH0_WEB_LEGACY_OWNER_ID`，可以省略 `CHATGPT_MCP_OWNER_ID`，避免再次複製敏感值；兩者同時存在時以 `CHATGPT_MCP_OWNER_ID` 為準。這個值是私人識別，不可寫入 Git、文件、截圖或前端環境變數。程式同時檢查 `CHATGPT_MCP_ALLOWED_SUBJECT`；固定 owner ID 不能繞過 Auth0 身份驗證。
+Marco 過渡期間三者必須是同一現有值。若 Vercel 已有 `AUTH0_WEB_LEGACY_OWNER_ID` 或現行 iPhone 上傳所用的 `SHORTCUT_OWNER_ID`，可以省略 `CHATGPT_MCP_OWNER_ID`，避免再次複製敏感值；優先順序為 ChatGPT 專用值、家庭 legacy 值、Shortcut 值。這個值是私人識別，不可寫入 Git、文件、截圖或前端環境變數。程式同時檢查 `CHATGPT_MCP_ALLOWED_SUBJECT`；固定 owner ID 不能繞過 Auth0 身份驗證。
 
 家庭成員則由家庭登入系統取得各自 owner ID，不能複製 Marco 的設定。未來若開放家庭 ChatGPT，需要建立經審核的 Auth0 subject-to-owner 映射，而不是讓一個固定 owner ID 接受多個 subject。
 

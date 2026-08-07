@@ -66,7 +66,8 @@ function getDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
 function getOwnerId(env: NodeJS.ProcessEnv): string | undefined {
   return (
     env.CHATGPT_MCP_OWNER_ID?.trim() ||
-    env.AUTH0_WEB_LEGACY_OWNER_ID?.trim()
+    env.AUTH0_WEB_LEGACY_OWNER_ID?.trim() ||
+    env.SHORTCUT_OWNER_ID?.trim()
   );
 }
 
