@@ -17,7 +17,7 @@ https://<deployment-domain>/mcp
 
 這些是分支內已測試的程式能力，**尚未代表正式 Connector 已更新或 iPhone HealthKit 已接通**。ChatGPT 只在使用者對話中呼叫工具時讀取資料，不會定時同步，也不能直接讀取 HealthKit。真正的資料來源是獲授權的 iOS HealthBridge；它先把日級聚合送到私人 API，ChatGPT 才能讀取。
 
-`GET /api/chatgpt-status` 只回傳 OAuth 與私人 adapters 是否配置，不回傳網址、token、secret、owner ID 或健康資料。缺少任何必要設定時系統 fail closed。
+`GET /api/chatgpt-status` 只回傳 OAuth 與私人 adapters 是否配置，以及缺少的環境變數名稱；不回傳網址、token、secret、owner ID 或健康資料。缺少任何必要設定時系統 fail closed。
 
 ## OAuth 與最小權限
 

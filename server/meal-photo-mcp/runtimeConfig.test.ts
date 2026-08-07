@@ -20,6 +20,15 @@ describe('ChatGPT MCP runtime configuration', () => {
     expect(getChatGptMcpReadiness({})).toEqual({
       state: 'locked',
       authConfigured: false,
+      missingAuthVariables: [
+        'CHATGPT_MCP_RESOURCE_URL',
+        'CHATGPT_MCP_AUTHORIZATION_SERVER',
+        'CHATGPT_MCP_ISSUER',
+        'CHATGPT_MCP_AUDIENCE',
+        'CHATGPT_MCP_JWKS_URI',
+        'CHATGPT_MCP_ALLOWED_SUBJECT',
+        'CHATGPT_MCP_OWNER_ID'
+      ],
       healthReadConfigured: false,
       privateStorageConfigured: false,
       mealWriteConfigured: false,
@@ -35,6 +44,7 @@ describe('ChatGPT MCP runtime configuration', () => {
     expect(getChatGptMcpReadiness(completeAuth)).toEqual({
       state: 'auth_ready',
       authConfigured: true,
+      missingAuthVariables: [],
       healthReadConfigured: false,
       privateStorageConfigured: false,
       mealWriteConfigured: false,

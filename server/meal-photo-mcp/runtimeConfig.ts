@@ -27,6 +27,7 @@ export interface ChatGptMcpStorageConfig extends PrivateMealStorageConfig {
 export interface ChatGptMcpReadiness {
   state: 'locked' | 'auth_ready' | 'ready';
   authConfigured: boolean;
+  missingAuthVariables: readonly string[];
   healthReadConfigured: boolean;
   privateStorageConfigured: boolean;
   mealWriteConfigured: boolean;
@@ -73,6 +74,16 @@ function hasCompleteAuth(env: NodeJS.ProcessEnv): boolean {
   return hasAll(env, requiredAuthVariables) && Boolean(getOwnerId(env));
 }
 
+function getMissingAuthVariables(env: NodeJS.ProcessEnv): string[] {
+  const missing: string[] = requiredAuthVariables.filter(
+    (name) => !env[name]?.trim()
+  );
+  if (!getOwnerId(env)) {
+    missing.push('CHATGPT_MCP_OWNER_ID');
+  }
+  return missing;
+}
+
 function secureUrl(value: string | undefined, name: string): URL {
   if (!value) {
     throw new Error(`${name} must be a valid HTTPS URL.`);
@@ -106,6 +117,7 @@ export function getChatGptMcpReadiness(
   ingestAdaptersImplemented = false
 ): ChatGptMcpReadiness {
   const authConfigured = hasCompleteAuth(env);
+  const missingAuthVariables = getMissingAuthVariables(env);
   const healthReadConfigured = Boolean(getDatabaseUrl(env));
   const privateStorageConfigured =
     hasAll(env, requiredChatGptStorageVariables) &&
@@ -117,6 +129,7 @@ export function getChatGptMcpReadiness(
   return {
     state: ready ? 'ready' : authConfigured ? 'auth_ready' : 'locked',
     authConfigured,
+    missingAuthVariables,
     healthReadConfigured,
     privateStorageConfigured,
     mealWriteConfigured,
