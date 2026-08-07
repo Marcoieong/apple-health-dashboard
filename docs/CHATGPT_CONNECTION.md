@@ -34,7 +34,7 @@ Connector 只要求 `health.read`，每個唯讀工具亦會再次檢查此 scop
 
 ## Marco 的固定 owner 映射
 
-現有餐食、Dashboard、iPhone HealthBridge 與 ChatGPT 必須使用完全相同的資料庫 owner ID：
+現有餐食、Dashboard、iPhone HealthBridge 與 ChatGPT 必須使用完全相同的資料庫 owner ID。ChatGPT 優先使用專用變數；未設定時可由伺服器沿用既有家庭登入映射：
 
 ```text
 CHATGPT_MCP_OWNER_ID
@@ -42,7 +42,7 @@ AUTH0_WEB_LEGACY_OWNER_ID
 SHORTCUT_OWNER_ID
 ```
 
-Marco 過渡期間三者必須是同一現有值。這個值是私人識別，不可寫入 Git、文件、截圖或前端環境變數。程式同時檢查 `CHATGPT_MCP_ALLOWED_SUBJECT`；固定 owner ID 不能繞過 Auth0 身份驗證。
+Marco 過渡期間三者必須是同一現有值。若 Vercel 已有 `AUTH0_WEB_LEGACY_OWNER_ID`，可以省略 `CHATGPT_MCP_OWNER_ID`，避免再次複製敏感值；兩者同時存在時以 `CHATGPT_MCP_OWNER_ID` 為準。這個值是私人識別，不可寫入 Git、文件、截圖或前端環境變數。程式同時檢查 `CHATGPT_MCP_ALLOWED_SUBJECT`；固定 owner ID 不能繞過 Auth0 身份驗證。
 
 家庭成員則由家庭登入系統取得各自 owner ID，不能複製 Marco 的設定。未來若開放家庭 ChatGPT，需要建立經審核的 Auth0 subject-to-owner 映射，而不是讓一個固定 owner ID 接受多個 subject。
 
@@ -57,7 +57,7 @@ CHATGPT_MCP_ISSUER=https://<auth-domain>/
 CHATGPT_MCP_AUDIENCE=https://health.pui-pui.org/api/mcp
 CHATGPT_MCP_JWKS_URI=https://<auth-domain>/.well-known/jwks.json
 CHATGPT_MCP_ALLOWED_SUBJECT=<Marco 的精確 Auth0 user_id>
-CHATGPT_MCP_OWNER_ID=<與現有 Marco owner ID 完全相同>
+CHATGPT_MCP_OWNER_ID=<選填；設定時須與現有 Marco owner ID 完全相同>
 DATABASE_URL=<Preview 私人 PostgreSQL URL>
 ```
 

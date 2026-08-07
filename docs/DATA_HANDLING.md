@@ -37,7 +37,7 @@
 
 開發分支提供 OAuth `health.read` 工具，只讀取資料庫內該 owner 已保存的日級聚合及同步狀態。ChatGPT 不直接讀 HealthKit、不觸發同步、不取得裝置識別、owner ID、原始 samples 或資料庫 ID。缺失值保持缺失；數值 `0` 是有效觀測。工具只在對話中被呼叫時讀取，沒有定時 AI 更新。
 
-Marco 過渡期的 `CHATGPT_MCP_OWNER_ID` 必須與家庭登入的 legacy owner 及現有 Shortcut owner 完全一致；家庭成員不可共用。正式聲稱接通前，仍須以一個全新 iPhone 請求核對 API 收據、資料庫 row、Dashboard 與 ChatGPT 同日摘要。
+Marco 過渡期的 `CHATGPT_MCP_OWNER_ID` 必須與家庭登入的 legacy owner 及現有 Shortcut owner 完全一致；未另設時可由伺服器沿用既有 `AUTH0_WEB_LEGACY_OWNER_ID`，但家庭成員不可共用。正式聲稱接通前，仍須以一個全新 iPhone 請求核對 API 收據、資料庫 row、Dashboard 與 ChatGPT 同日摘要。
 
 ## 匯出、版本與遷移
 

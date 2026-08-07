@@ -88,7 +88,7 @@ pnpm db:private:apply
 
 目前不應把此分支 promote 至 `health.pui-pui.org`，也不應宣稱有固定更新頻率。手動同步成功後才加入 HealthKit background delivery；實際背景執行時間由 iOS 決定。
 
-ChatGPT Preview 另須把 `CHATGPT_MCP_OWNER_ID` 設為 Marco 現有的 owner ID，並與 `AUTH0_WEB_LEGACY_OWNER_ID`／過渡期 `SHORTCUT_OWNER_ID` 完全一致。未完成這項核對時 MCP 應保持鎖定；不可用另一套 HMAC 推導後假設資料會自動對上。部署前先閱讀 [系統架構](SYSTEM_ARCHITECTURE.md) 與 [ChatGPT 接入指南](CHATGPT_CONNECTION.md)。
+ChatGPT Preview 優先使用獨立的 `CHATGPT_MCP_OWNER_ID`；若沒有設定，伺服器會安全沿用已存在的 `AUTH0_WEB_LEGACY_OWNER_ID`，避免複製敏感 owner ID。兩者同時存在時，以 `CHATGPT_MCP_OWNER_ID` 為準，而且必須與 Marco 現有的 owner ID／過渡期 `SHORTCUT_OWNER_ID` 完全一致。兩者都沒有時 MCP 應保持鎖定；不可用另一套 HMAC 推導後假設資料會自動對上。部署前先閱讀 [系統架構](SYSTEM_ARCHITECTURE.md) 與 [ChatGPT 接入指南](CHATGPT_CONNECTION.md)。
 
 ## 上線前檢查
 

@@ -40,7 +40,6 @@ const requiredAuthVariables = [
   'CHATGPT_MCP_ISSUER',
   'CHATGPT_MCP_AUDIENCE',
   'CHATGPT_MCP_JWKS_URI',
-  'CHATGPT_MCP_OWNER_ID',
   'CHATGPT_MCP_ALLOWED_SUBJECT'
 ] as const;
 
@@ -61,6 +60,17 @@ const hasAll = (
 
 function getDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
   return env.DATABASE_URL?.trim() || env.CHATGPT_MCP_DATABASE_URL?.trim();
+}
+
+function getOwnerId(env: NodeJS.ProcessEnv): string | undefined {
+  return (
+    env.CHATGPT_MCP_OWNER_ID?.trim() ||
+    env.AUTH0_WEB_LEGACY_OWNER_ID?.trim()
+  );
+}
+
+function hasCompleteAuth(env: NodeJS.ProcessEnv): boolean {
+  return hasAll(env, requiredAuthVariables) && Boolean(getOwnerId(env));
 }
 
 function secureUrl(value: string | undefined, name: string): URL {
@@ -95,7 +105,7 @@ export function getChatGptMcpReadiness(
   env: NodeJS.ProcessEnv = process.env,
   ingestAdaptersImplemented = false
 ): ChatGptMcpReadiness {
-  const authConfigured = hasAll(env, requiredAuthVariables);
+  const authConfigured = hasCompleteAuth(env);
   const healthReadConfigured = Boolean(getDatabaseUrl(env));
   const privateStorageConfigured =
     hasAll(env, requiredChatGptStorageVariables) &&
@@ -118,7 +128,7 @@ export function getChatGptMcpReadiness(
 export function loadChatGptMcpRuntimeConfig(
   env: NodeJS.ProcessEnv = process.env
 ): ChatGptMcpRuntimeConfig {
-  if (!hasAll(env, requiredAuthVariables)) {
+  if (!hasCompleteAuth(env)) {
     throw new Error('ChatGPT MCP OAuth configuration is incomplete.');
   }
 
@@ -134,7 +144,7 @@ export function loadChatGptMcpRuntimeConfig(
     issuer: env.CHATGPT_MCP_ISSUER as string,
     audience: env.CHATGPT_MCP_AUDIENCE as string,
     jwksUri: secureUrl(env.CHATGPT_MCP_JWKS_URI, 'CHATGPT_MCP_JWKS_URI'),
-    ownerId: secureOwnerId(env.CHATGPT_MCP_OWNER_ID),
+    ownerId: secureOwnerId(getOwnerId(env)),
     allowedSubject: env.CHATGPT_MCP_ALLOWED_SUBJECT as string
   };
 }

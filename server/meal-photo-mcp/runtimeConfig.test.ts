@@ -43,6 +43,29 @@ describe('ChatGPT MCP runtime configuration', () => {
     });
   });
 
+  it('reuses the existing legacy owner mapping without duplicating its secret', () => {
+    const env = {
+      ...completeAuth,
+      CHATGPT_MCP_OWNER_ID: undefined,
+      AUTH0_WEB_LEGACY_OWNER_ID: 'existing-marco-owner'
+    };
+
+    expect(getChatGptMcpReadiness(env).authConfigured).toBe(true);
+    expect(loadChatGptMcpRuntimeConfig(env).ownerId).toBe(
+      'existing-marco-owner'
+    );
+  });
+
+  it('prefers an explicit ChatGPT owner mapping when both are configured', () => {
+    const config = loadChatGptMcpRuntimeConfig({
+      ...completeAuth,
+      CHATGPT_MCP_OWNER_ID: 'explicit-owner',
+      AUTH0_WEB_LEGACY_OWNER_ID: 'legacy-owner'
+    });
+
+    expect(config.ownerId).toBe('explicit-owner');
+  });
+
   it('reports meal writes independently from health reads', () => {
     const env = {
       ...completeAuth,
