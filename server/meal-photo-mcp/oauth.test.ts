@@ -41,7 +41,7 @@ describe('ChatGPT MCP OAuth helpers', () => {
     };
 
     expect(buildWwwAuthenticate(config)).toBe(
-      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read meal.write"'
+      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read"'
     );
   });
 });

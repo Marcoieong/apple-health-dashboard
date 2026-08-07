@@ -8,11 +8,12 @@
 https://<deployment-domain>/mcp
 ```
 
-目前工具分為兩組：
+目前公開給 ChatGPT 的工具只有以下唯讀能力：
 
 - `get_health_summary`：按最近 1–31 日讀取已保存的私人日級健康摘要；唯讀，需要 `health.read`。
 - `get_health_sync_status`：讀取最近同步時間、資料日期及狀態；唯讀，需要 `health.read`，不回傳裝置識別。
-- `record_meal`：保存餐食 metadata 及相片；寫入，需要 `meal.write`。
+
+`record_meal` 寫入程式保留作未來獨立整合，但不會在這個唯讀 MCP endpoint 註冊、公布或授權。
 
 這些是分支內已測試的程式能力，**尚未代表正式 Connector 已更新或 iPhone HealthKit 已接通**。ChatGPT 只在使用者對話中呼叫工具時讀取資料，不會定時同步，也不能直接讀取 HealthKit。真正的資料來源是獲授權的 iOS HealthBridge；它先把日級聚合送到私人 API，ChatGPT 才能讀取。
 
@@ -24,10 +25,10 @@ https://<deployment-domain>/mcp
 
 ```text
 Audience: https://health.pui-pui.org/api/mcp
-Permissions: health.read, meal.write
+Permissions: health.read
 ```
 
-只作健康分析的 Connector 應只要求 `health.read`。每個 MCP 工具會再次檢查自己的 scope；持有 `health.read` 不代表可以記錄餐食，持有 `meal.write` 亦不能讀取健康摘要。
+Connector 只要求 `health.read`，每個唯讀工具亦會再次檢查此 scope。`meal.write` 不屬於本次 ChatGPT Connector。
 
 目前只開放 Marco 的精確 Auth0 `sub`。家庭成員不得共用 Marco 的 Connector 或 owner ID；每人映射及跨帳戶負面測試完成前，家庭 Connector 保持關閉。
 
@@ -60,7 +61,7 @@ CHATGPT_MCP_OWNER_ID=<與現有 Marco owner ID 完全相同>
 DATABASE_URL=<Preview 私人 PostgreSQL URL>
 ```
 
-上述設定足以啟用唯讀健康工具。只有啟用 `record_meal` 時才另加：
+上述設定足以啟用唯讀健康工具。下列餐食寫入設定不應加入本次 Connector；只供未來獨立、另行審核的整合使用：
 
 ```text
 CHATGPT_MCP_INGEST_HMAC_SECRET=<至少 32 bytes 隨機值>
@@ -79,10 +80,10 @@ Preview 與 Production 使用不同秘密。任何 integration token、owner ID 
 
 ## ChatGPT Connector 設定
 
-1. 在 Preview 確認 `/api/chatgpt-status` 的 `healthReadConfigured` 為 `true`；需要餐食寫入時再確認 `mealWriteConfigured`。
-2. 在 Auth0 API 加入 `health.read` 與 `meal.write` permissions。
+1. 在 Preview 確認 `/api/chatgpt-status` 的 `healthReadConfigured` 為 `true`。
+2. 在 Auth0 API 只加入 `health.read` permission。
 3. 在 ChatGPT Apps／Connectors 開發設定加入 Preview MCP URL。
-4. 只讀健康 Connector 只同意 `health.read`；需要餐食寫入時才另加 `meal.write`。
+4. 只同意 `health.read`；若授權畫面出現任何寫入 scope，立即取消。
 5. 確認能看見兩個唯讀健康工具，並顯示 read-only、non-destructive。
 6. 先用非敏感測試資料驗證；不要直接 promote 至 `health.pui-pui.org`。
 
@@ -91,7 +92,7 @@ Preview 與 Production 使用不同秘密。任何 integration token、owner ID 
 正式聲稱「ChatGPT 已接入健康資料」前，必須全部通過：
 
 - 無 token、錯誤 issuer／audience、過期 token、錯誤 subject 均被拒。
-- 缺 `health.read` 不能呼叫健康工具；缺 `meal.write` 不能呼叫餐食寫入。
+- 缺 `health.read` 不能呼叫健康工具；工具清單不得出現任何寫入工具。
 - Marco Connector 只讀取 Marco owner；另一帳戶、另一 owner 及另一裝置均不能越界。
 - 缺失值保持缺失，真實數值 `0` 不被當成缺失；澳門日期範圍正確。
 - ChatGPT 回應不包含 owner ID、裝置 ID、token、資料庫 ID 或原始 HealthKit samples。

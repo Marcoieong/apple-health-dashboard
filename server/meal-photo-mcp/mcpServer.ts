@@ -64,58 +64,48 @@ export function createMealMcpServer(
     version: '0.1.0'
   });
 
-  server.registerTool(
-    recordMealToolDescriptor.name,
-    {
-      title: recordMealToolDescriptor.title,
-      description: recordMealToolDescriptor.description,
-      inputSchema: recordMealInputSchema,
-      outputSchema: recordMealOutputSchema,
-      annotations: recordMealToolDescriptor.annotations,
-      _meta: recordMealToolDescriptor._meta
-    },
-    async (input, extra) => {
-      const ownerId = extra.authInfo?.extra?.ownerId;
-      if (
-        typeof ownerId !== 'string' ||
-        !extra.authInfo?.scopes.includes('meal.write')
-      ) {
-        return {
-          isError: true,
-          content: [{ type: 'text', text: '需要 meal.write 授權。' }]
-        };
-      }
+  if (executeRecordMeal) {
+    server.registerTool(
+      recordMealToolDescriptor.name,
+      {
+        title: recordMealToolDescriptor.title,
+        description: recordMealToolDescriptor.description,
+        inputSchema: recordMealInputSchema,
+        outputSchema: recordMealOutputSchema,
+        annotations: recordMealToolDescriptor.annotations,
+        _meta: recordMealToolDescriptor._meta
+      },
+      async (input, extra) => {
+        const ownerId = extra.authInfo?.extra?.ownerId;
+        if (
+          typeof ownerId !== 'string' ||
+          !extra.authInfo?.scopes.includes('meal.write')
+        ) {
+          return {
+            isError: true,
+            content: [{ type: 'text', text: '需要 meal.write 授權。' }]
+          };
+        }
 
-      if (!executeRecordMeal) {
+        const result = await executeRecordMeal(input as RecordMealInput, {
+          subject: ownerId,
+          scopes: extra.authInfo.scopes
+        });
         return {
-          isError: true,
           content: [
             {
               type: 'text',
-              text: '私人儲存尚未啟用；本次沒有寫入或保留任何照片。'
+              text:
+                result.status === 'recorded'
+                  ? '餐食已安全記錄。'
+                  : '這餐已記錄，沒有重複新增。'
             }
-          ]
+          ],
+          structuredContent: { ...result }
         };
       }
-
-      const result = await executeRecordMeal(input as RecordMealInput, {
-        subject: ownerId,
-        scopes: extra.authInfo.scopes
-      });
-      return {
-        content: [
-          {
-            type: 'text',
-            text:
-              result.status === 'recorded'
-                ? '餐食已安全記錄。'
-                : '這餐已記錄，沒有重複新增。'
-          }
-        ],
-        structuredContent: { ...result }
-      };
-    }
-  );
+    );
+  }
 
   server.registerTool(
     healthSummaryToolDescriptor.name,

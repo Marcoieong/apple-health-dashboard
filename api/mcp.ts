@@ -8,27 +8,14 @@ import {
 } from '../server/health-sync/index.js';
 import {
   buildWwwAuthenticate,
-  createProductionRecordMealDependencies,
   createMealMcpServer,
   extractBearerToken,
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
-  loadChatGptMcpStorageConfig,
-  recordMeal,
   verifyMcpAccessToken
 } from '../server/meal-photo-mcp/index.js';
 
 type AuthenticatedVercelRequest = VercelRequest & { auth?: AuthInfo };
-let dependencies:
-  | ReturnType<typeof createProductionRecordMealDependencies>
-  | undefined;
-
-function getDependencies() {
-  dependencies ??= createProductionRecordMealDependencies(
-    loadChatGptMcpStorageConfig()
-  );
-  return dependencies;
-}
 
 function sendJson(
   response: VercelResponse,
@@ -82,9 +69,7 @@ export default async function handler(
     ? loadHealthReadConfig()
     : undefined;
   const server = createMealMcpServer(
-    readiness.mealWriteConfigured
-      ? (input, auth) => recordMeal(input, auth, getDependencies())
-      : undefined,
+    undefined,
     healthReadConfig
       ? {
           listDays: (ownerId, from, to) =>

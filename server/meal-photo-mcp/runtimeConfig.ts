@@ -1,6 +1,8 @@
 export const MEAL_WRITE_SCOPE = 'meal.write';
 export const HEALTH_READ_SCOPE = 'health.read';
-export const SUPPORTED_MCP_SCOPES = [HEALTH_READ_SCOPE, MEAL_WRITE_SCOPE] as const;
+// The ChatGPT connector is deliberately read-only. Meal ingestion remains a
+// separate capability and must never be advertised by this protected resource.
+export const SUPPORTED_MCP_SCOPES = [HEALTH_READ_SCOPE] as const;
 
 export interface ChatGptMcpRuntimeConfig {
   resourceUrl: URL;
