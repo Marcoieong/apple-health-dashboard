@@ -16,7 +16,7 @@
 - ChatGPT OAuth `health.read` 的唯讀日級摘要及同步狀態工具，不回傳裝置識別；
 - 部分欄位更新、較新 HealthKit 修正值及重試去重規則的單元測試。
 
-這只代表程式碼已準備接受審核，**不代表已套用 Preview／Production 資料庫、更新 ChatGPT Connector，也不代表已連接 iPhone HealthKit**。下一個工程里程碑是建立最小原生 iOS Companion App，先用「手動同步」在 Preview 完成一個真實請求、資料庫保存、Dashboard 顯示及 ChatGPT 同日摘要的閉環；其後才評估背景同步。
+原生 iOS HealthBridge 的第一個可編譯切片現已加入：包含 Auth0 帳戶確認、每裝置 Keychain 金鑰、HealthKit 唯讀授權、最近 30 日日級聚合及手動同步。**這仍不代表已完成真機保存**；下一個工程里程碑是在 Preview 以真實 iPhone 核對 API 收據、資料庫保存、Dashboard 顯示及 ChatGPT 同日摘要。操作見 [HealthBridge 首次真機同步](HEALTHBRIDGE_FIRST_SYNC.md)，其後才加入背景同步。
 
 ## 為何一般網頁不能直接讀取 Apple Health
 

@@ -16,7 +16,7 @@
 - 成員資料隔離：每個帳戶使用獨立擁有人 ID 與 PostgreSQL RLS；家庭管理員不會預設看到其他成員資料
 - iPhone Shortcut 導入：每位成員可建立及撤銷自己的 Bearer 金鑰；Base64 圖片會清除 EXIF/GPS、重試去重並存入私人儲存
 - 私人唯讀日誌：登入後只讀取該成員自己的餐食摘要與短效受保護縮圖
-- HealthKit 同步後端（開發分支）：日級聚合 contract、每裝置憑證、PostgreSQL RLS、冪等寫入、私人讀取及同步狀態 API；尚未部署或連接真機
+- HealthKit 同步（開發分支）：日級聚合後端、每裝置憑證、PostgreSQL RLS，以及可編譯的原生 iPhone HealthBridge；仍待首次真機保存驗收
 - ChatGPT 唯讀健康工具（開發分支）：OAuth `health.read` 可讀取日級摘要與同步狀態；按需讀取已保存資料，尚未更新正式 Connector
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
 - 基礎 PWA：manifest、service worker、standalone 顯示與離線開啟已建置內容
@@ -101,7 +101,7 @@ pnpm exec playwright install chromium
 ## 已知限制
 
 - 正式網站未直接連接 Apple Health／HealthKit
-- 健康同步後端只在開發分支完成；尚未套用 Preview schema、建立 iOS HealthBridge 或完成真機保存證據
+- 健康同步後端及 iOS HealthBridge 已在開發分支完成；尚未取得首次真機保存證據
 - 健康指標仍是 Demo Data；尚未由 Apple Health 自動同步
 - 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
 - Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
@@ -114,4 +114,4 @@ pnpm exec playwright install chromium
 
 ## 下一個小階段
 
-建立最小 iOS HealthBridge（Auth0 Native PKCE、HealthKit 唯讀授權及手動同步），然後在隔離的 Vercel Preview 套用 `health-sync-v1` schema，以一個新 iPhone 請求核對 API 收據、資料庫 row 與 Dashboard 顯示。確認完整閉環後才加入背景同步、提升至正式網域或邀請其他家庭成員。完整路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
+把現有 iOS HealthBridge 安裝到已連接的 iPhone，以一個真實請求核對 API 收據、資料庫 row、Dashboard 顯示及 ChatGPT 同日摘要。確認完整閉環後才加入背景同步、提升至正式網域或邀請其他家庭成員。操作見 [HealthBridge 首次真機同步](docs/HEALTHBRIDGE_FIRST_SYNC.md)，完整路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
