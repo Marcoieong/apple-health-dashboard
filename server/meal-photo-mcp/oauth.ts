@@ -24,6 +24,7 @@ export type McpAccessTokenDiagnostic =
 
 export class McpAccessTokenError extends Error {
   readonly diagnostic: McpAccessTokenDiagnostic;
+  readonly cause?: unknown;
 
   constructor(diagnostic: McpAccessTokenDiagnostic, cause?: unknown) {
     super('MCP access token rejected.');
