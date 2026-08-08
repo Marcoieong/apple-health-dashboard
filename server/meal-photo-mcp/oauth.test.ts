@@ -43,5 +43,13 @@ describe('ChatGPT MCP OAuth helpers', () => {
     expect(buildWwwAuthenticate(config)).toBe(
       'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read"'
     );
+    expect(
+      buildWwwAuthenticate(config, {
+        error: 'insufficient_scope',
+        errorDescription: 'health.read scope is required'
+      })
+    ).toBe(
+      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read", error="insufficient_scope", error_description="health.read scope is required"'
+    );
   });
 });

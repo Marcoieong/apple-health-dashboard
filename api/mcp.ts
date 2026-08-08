@@ -78,7 +78,11 @@ export default async function handler(
           listSyncStatus: (ownerId) =>
             listPrivateHealthSyncStatus(ownerId, healthReadConfig)
         }
-      : undefined
+      : undefined,
+    buildWwwAuthenticate(config, {
+      error: 'insufficient_scope',
+      errorDescription: 'health.read scope is required'
+    })
   );
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

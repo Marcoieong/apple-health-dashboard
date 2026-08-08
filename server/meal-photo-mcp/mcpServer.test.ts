@@ -70,4 +70,39 @@ describe('ChatGPT MCP tool exposure', () => {
       await server.close();
     }
   });
+
+  it('returns an OAuth challenge when a read tool is called without authorization', async () => {
+    const challenge =
+      'Bearer resource_metadata="https://preview.example/.well-known/oauth-protected-resource", scope="health.read", error="insufficient_scope", error_description="health.read scope is required"';
+    const server = createMealMcpServer(
+      undefined,
+      {
+        listDays: async () => [],
+        listSyncStatus: async () => []
+      },
+      challenge
+    );
+    const client = new Client({ name: 'unauthorized-test', version: '1.0.0' });
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+
+      for (const request of [
+        { name: 'get_health_summary', arguments: { days: 7 } },
+        { name: 'get_health_sync_status', arguments: {} }
+      ]) {
+        const result = await client.callTool(request);
+        expect(result).toMatchObject({
+          isError: true,
+          _meta: { 'mcp/www_authenticate': [challenge] }
+        });
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
 });

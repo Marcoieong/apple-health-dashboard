@@ -92,10 +92,32 @@ export async function verifyMcpAccessToken(
   };
 }
 
-export function buildWwwAuthenticate(config: ChatGptMcpRuntimeConfig): string {
+export interface WwwAuthenticateError {
+  error: 'invalid_token' | 'insufficient_scope';
+  errorDescription: string;
+}
+
+function quoteAuthParameter(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+export function buildWwwAuthenticate(
+  config: ChatGptMcpRuntimeConfig,
+  authError?: WwwAuthenticateError
+): string {
   const metadataUrl = new URL(
     '/.well-known/oauth-protected-resource',
     config.resourceUrl
   );
-  return `Bearer resource_metadata="${metadataUrl.href}", scope="${SUPPORTED_MCP_SCOPES.join(' ')}"`;
+  const parameters = [
+    `resource_metadata="${quoteAuthParameter(metadataUrl.href)}"`,
+    `scope="${SUPPORTED_MCP_SCOPES.join(' ')}"`
+  ];
+  if (authError) {
+    parameters.push(
+      `error="${authError.error}"`,
+      `error_description="${quoteAuthParameter(authError.errorDescription)}"`
+    );
+  }
+  return `Bearer ${parameters.join(', ')}`;
 }

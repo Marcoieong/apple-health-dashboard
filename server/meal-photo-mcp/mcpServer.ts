@@ -93,7 +93,8 @@ function installOpenAiToolCatalogue(
 
 export function createMealMcpServer(
   executeRecordMeal?: ExecuteRecordMeal,
-  healthReadDependencies?: HealthReadDependencies
+  healthReadDependencies?: HealthReadDependencies,
+  healthReadAuthChallenge?: string
 ): McpServer {
   const server = new McpServer({
     name: 'personal-health-dashboard',
@@ -161,7 +162,14 @@ export function createMealMcpServer(
       ) {
         return {
           isError: true,
-          content: [{ type: 'text', text: '需要 health.read 授權。' }]
+          content: [{ type: 'text', text: '需要 health.read 授權。' }],
+          ...(healthReadAuthChallenge
+            ? {
+                _meta: {
+                  'mcp/www_authenticate': [healthReadAuthChallenge]
+                }
+              }
+            : {})
         };
       }
       if (!healthReadDependencies) {
@@ -208,7 +216,14 @@ export function createMealMcpServer(
       ) {
         return {
           isError: true,
-          content: [{ type: 'text', text: '需要 health.read 授權。' }]
+          content: [{ type: 'text', text: '需要 health.read 授權。' }],
+          ...(healthReadAuthChallenge
+            ? {
+                _meta: {
+                  'mcp/www_authenticate': [healthReadAuthChallenge]
+                }
+              }
+            : {})
         };
       }
       if (!healthReadDependencies) {
