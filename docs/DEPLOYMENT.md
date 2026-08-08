@@ -70,7 +70,7 @@ Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備
 
 ## Apple Health 私人同步後端（第二階段）
 
-`codex/health-sync-phase2` 分支已包含 `health-sync-v1` migration 及私人 API，但尚未套用至 Preview 或 Production。它需要：
+`codex/health-sync-phase2` 分支已包含 `health-sync-v1` migration 及私人 API。2026-08-08 已把 migration 套用至這個分支的隔離 Preview 資料庫；**Production 尚未套用**。它需要：
 
 - `DATABASE_URL`：啟用 TLS 的 PostgreSQL 連線；程式會拒絕 `sslmode=disable`；
 - `HEALTH_SYNC_TOKEN_SECRET`：最少 32 字元，用於加密／驗證每裝置同步憑證；
@@ -78,13 +78,13 @@ Vercel 版本包含 HTTPS MCP 接入層；GitHub Pages／Cloudflare Pages 後備
 
 秘密只可放在 Vercel 對應環境的 encrypted environment variables，不得加入 `.env` 範例值、Git、前端 `VITE_*` 變數或 iPhone Shortcut 網址。Preview 與 Production 必須使用不同秘密及資料庫（或至少不同嚴格隔離的 schema／角色）。
 
-在獲得明確確認、備份並核對目標資料庫後，才可對 Preview 執行：
+在獲得明確確認、備份並核對目標資料庫後，才可對指定環境執行：
 
 ```bash
-pnpm db:private:apply
+pnpm private-db:migrate
 ```
 
-腳本會依序套用尚未記錄的私人 schema migration，包括 `health-sync-v1`；不可在本機測試時把 Production `DATABASE_URL` 暴露到 shell history 或 log。套用後先以非敏感測試帳戶驗證：未授權為 401、跨成員／跨裝置被拒、相同請求可安全重試、私人讀取只回傳本人紀錄。最後才使用 iPhone HealthBridge 傳送一個真實但最小的日級聚合，核對 API 收據、資料庫 row 與 Dashboard 顯示三者一致。
+腳本會依序套用尚未記錄的私人 schema migration，包括 `health-sync-v1`；執行前必須明確選定 Preview 環境，不可在本機測試時把 Production `DATABASE_URL` 暴露到 shell history 或 log。套用後先以非敏感測試帳戶驗證：未授權為 401、跨成員／跨裝置被拒、相同請求可安全重試、私人讀取只回傳本人紀錄。最後才使用 iPhone HealthBridge 傳送一個真實但最小的日級聚合，核對 API 收據、資料庫 row 與 Dashboard 顯示三者一致。
 
 目前不應把此分支 promote 至 `health.pui-pui.org`，也不應宣稱有固定更新頻率。手動同步成功後才加入 HealthKit background delivery；實際背景執行時間由 iOS 決定。
 

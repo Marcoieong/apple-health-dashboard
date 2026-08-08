@@ -15,7 +15,7 @@ https://<deployment-domain>/mcp
 
 `record_meal` 寫入程式保留作未來獨立整合，但不會在這個唯讀 MCP endpoint 註冊、公布或授權。
 
-這些是分支內已測試的程式能力，**尚未代表正式 Connector 已更新或 iPhone HealthKit 已接通**。ChatGPT 只在使用者對話中呼叫工具時讀取資料，不會定時同步，也不能直接讀取 HealthKit。真正的資料來源是獲授權的 iOS HealthBridge；它先把日級聚合送到私人 API，ChatGPT 才能讀取。
+Preview Connector 已完成 OAuth、工具發現及兩個唯讀工具的實際 ChatGPT 呼叫；目前正確回傳「沒有健康資料」及 `never_synced`。這只證明唯讀連線正常，**不代表 iPhone HealthKit 已接通**。ChatGPT 只在使用者對話中呼叫工具時讀取資料，不會定時同步，也不能直接讀取 HealthKit。真正的資料來源是獲授權的 iOS HealthBridge；它先把日級聚合送到私人 API，ChatGPT 才能讀取。
 
 `GET /api/chatgpt-status` 只回傳 OAuth 與私人 adapters 是否配置，以及缺少的環境變數名稱；不回傳網址、token、secret、owner ID 或健康資料。缺少任何必要設定時系統 fail closed。
 
@@ -24,9 +24,11 @@ https://<deployment-domain>/mcp
 身份服務必須支援 OAuth 2.1、Authorization Code、PKCE S256、OIDC discovery 及 JWT access token。Auth0 API 應建立：
 
 ```text
-Audience: https://health.pui-pui.org/api/mcp
+Audience: https://<preview-domain>/mcp
 Permissions: health.read
 ```
+
+Audience 必須與 Auth0 API Identifier、`CHATGPT_MCP_RESOURCE_URL` 及 `CHATGPT_MCP_AUDIENCE` **逐字完全相同**，包括 scheme、host 及 `/mcp` path；否則 access token 會因 audience 不符而被拒。Preview 與日後 Production 應使用各自的 resource URL，正式環境只可在另行審核後設定。
 
 Connector 只要求 `health.read`，每個唯讀工具亦會再次檢查此 scope。`meal.write` 不屬於本次 ChatGPT Connector。
 
@@ -54,7 +56,7 @@ Marco 過渡期間三者必須是同一現有值。若 Vercel 已有 `AUTH0_WEB_
 CHATGPT_MCP_RESOURCE_URL=https://<preview-domain>/mcp
 CHATGPT_MCP_AUTHORIZATION_SERVER=https://<auth-domain>/
 CHATGPT_MCP_ISSUER=https://<auth-domain>/
-CHATGPT_MCP_AUDIENCE=https://health.pui-pui.org/api/mcp
+CHATGPT_MCP_AUDIENCE=https://<preview-domain>/mcp
 CHATGPT_MCP_JWKS_URI=https://<auth-domain>/.well-known/jwks.json
 CHATGPT_MCP_ALLOWED_SUBJECT=<Marco 的精確 Auth0 user_id>
 CHATGPT_MCP_OWNER_ID=<選填；設定時須與現有 Marco owner ID 完全相同>
