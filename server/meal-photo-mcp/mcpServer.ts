@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type {
   AuthContext,
@@ -54,6 +55,41 @@ export type ExecuteRecordMeal = (
   input: RecordMealInput,
   auth: AuthContext
 ) => Promise<RecordMealResult>;
+
+function installOpenAiToolCatalogue(
+  server: McpServer,
+  includeMealWrite: boolean
+): void {
+  const readTools = [
+    {
+      ...healthSummaryToolDescriptor,
+      inputSchema: z.toJSONSchema(healthSummaryInputSchema),
+      outputSchema: z.toJSONSchema(healthSummaryOutputSchema)
+    },
+    {
+      ...healthSyncStatusToolDescriptor,
+      inputSchema: z.toJSONSchema(healthSyncStatusInputSchema),
+      outputSchema: z.toJSONSchema(healthSyncStatusOutputSchema)
+    }
+  ];
+  const tools = includeMealWrite
+    ? [
+        {
+          ...recordMealToolDescriptor,
+          inputSchema: z.toJSONSchema(recordMealInputSchema),
+          outputSchema: z.toJSONSchema(recordMealOutputSchema)
+        },
+        ...readTools
+      ]
+    : readTools;
+
+  // The MCP SDK currently serializes `_meta.securitySchemes` but omits the
+  // top-level OpenAI Apps SDK extension. Replace only tools/list so ChatGPT
+  // receives both copies; tools/call remains managed and validated by MCP.
+  server.server.setRequestHandler(ListToolsRequestSchema, () => ({
+    tools
+  }));
+}
 
 export function createMealMcpServer(
   executeRecordMeal?: ExecuteRecordMeal,
@@ -199,6 +235,8 @@ export function createMealMcpServer(
       };
     }
   );
+
+  installOpenAiToolCatalogue(server, Boolean(executeRecordMeal));
 
   return server;
 }

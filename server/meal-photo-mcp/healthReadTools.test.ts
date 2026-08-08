@@ -126,8 +126,14 @@ describe('ChatGPT read-only health tools', () => {
       idempotentHint: true,
       openWorldHint: false
     });
+    expect(healthSummaryToolDescriptor.securitySchemes).toEqual([
+      { type: 'oauth2', scopes: ['health.read'] }
+    ]);
     expect(healthSummaryToolDescriptor._meta.securitySchemes).toEqual([
       { type: 'oauth2', scopes: ['health.read'] }
     ]);
+    expect(healthSummaryToolDescriptor._meta.securitySchemes).toEqual(
+      healthSummaryToolDescriptor.securitySchemes
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it } from 'vitest';
 import { createMealMcpServer } from './mcpServer.js';
 
@@ -25,6 +26,45 @@ describe('ChatGPT MCP tool exposure', () => {
       expect(result.tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(
         true
       );
+
+      const rawMessages: JSONRPCMessage[] = [];
+      const handleClientMessage = clientTransport.onmessage;
+      clientTransport.onmessage = (message) => {
+        rawMessages.push(message);
+        handleClientMessage?.(message);
+      };
+      await client.listTools();
+      const rawResult = rawMessages.find(
+        (message) => 'result' in message && 'tools' in message.result
+      );
+      expect(rawResult).toMatchObject({
+        result: {
+          tools: [
+            {
+              name: 'get_health_summary',
+              securitySchemes: [
+                { type: 'oauth2', scopes: ['health.read'] }
+              ],
+              _meta: {
+                securitySchemes: [
+                  { type: 'oauth2', scopes: ['health.read'] }
+                ]
+              }
+            },
+            {
+              name: 'get_health_sync_status',
+              securitySchemes: [
+                { type: 'oauth2', scopes: ['health.read'] }
+              ],
+              _meta: {
+                securitySchemes: [
+                  { type: 'oauth2', scopes: ['health.read'] }
+                ]
+              }
+            }
+          ]
+        }
+      });
     } finally {
       await client.close();
       await server.close();

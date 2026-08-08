@@ -127,6 +127,7 @@ export const healthSummaryToolDescriptor = {
     idempotentHint: true,
     openWorldHint: false
   },
+  securitySchemes: [healthReadSecurityScheme],
   _meta: {
     securitySchemes: [healthReadSecurityScheme],
     'openai/toolInvocation/invoking': '正在讀取私人健康摘要…',
@@ -145,6 +146,7 @@ export const healthSyncStatusToolDescriptor = {
     idempotentHint: true,
     openWorldHint: false
   },
+  securitySchemes: [healthReadSecurityScheme],
   _meta: {
     securitySchemes: [healthReadSecurityScheme],
     'openai/toolInvocation/invoking': '正在檢查健康同步…',
