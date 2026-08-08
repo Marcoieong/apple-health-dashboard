@@ -3,7 +3,10 @@
 import type { VercelRequest } from '@vercel/node';
 import { describe, expect, it } from 'vitest';
 import { loadFamilyAuthConfig } from './config.js';
-import { assertSameOriginJsonMutation } from './request.js';
+import {
+  assertSameOriginFormMutation,
+  assertSameOriginJsonMutation
+} from './request.js';
 
 const config = loadFamilyAuthConfig({
   AUTH0_WEB_ISSUER: 'https://family-test.auth0.com',
@@ -55,6 +58,45 @@ describe('same-origin JSON mutation guard', () => {
   ])('rejects an unsafe mutation', (headers, message) => {
     expect(() =>
       assertSameOriginJsonMutation(request(headers), config)
+    ).toThrow(message);
+  });
+});
+
+describe('same-origin form mutation guard', () => {
+  it('accepts the HealthBridge consent form', () => {
+    expect(() =>
+      assertSameOriginFormMutation(
+        request({
+          origin: 'https://health.pui-pui.org',
+          'sec-fetch-site': 'same-origin',
+          'content-type': 'application/x-www-form-urlencoded'
+        }),
+        config
+      )
+    ).not.toThrow();
+  });
+
+  it.each([
+    [{ 'content-type': 'application/x-www-form-urlencoded' }, 'forbidden'],
+    [
+      {
+        origin: 'https://evil.example',
+        'sec-fetch-site': 'cross-site',
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      'forbidden'
+    ],
+    [
+      {
+        origin: 'https://health.pui-pui.org',
+        'sec-fetch-site': 'same-origin',
+        'content-type': 'application/json'
+      },
+      'invalid_content_type'
+    ]
+  ])('rejects an unsafe form mutation', (headers, message) => {
+    expect(() =>
+      assertSameOriginFormMutation(request(headers), config)
     ).toThrow(message);
   });
 });
