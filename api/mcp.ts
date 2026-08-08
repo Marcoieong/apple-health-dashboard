@@ -13,6 +13,7 @@ import {
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
   normalizeMcpPostAcceptHeader,
+  normalizeMcpPostRawHeaders,
   verifyMcpAccessToken
 } from '../server/meal-photo-mcp/index.js';
 
@@ -89,6 +90,15 @@ export default async function handler(
     request.headers.accept = normalizeMcpPostAcceptHeader(
       request.method,
       request.headers.accept
+    );
+    const normalizedRawHeaders = normalizeMcpPostRawHeaders(
+      request.method,
+      request.rawHeaders
+    );
+    request.rawHeaders.splice(
+      0,
+      request.rawHeaders.length,
+      ...normalizedRawHeaders
     );
     await transport.handleRequest(request, response, request.body);
   } finally {
