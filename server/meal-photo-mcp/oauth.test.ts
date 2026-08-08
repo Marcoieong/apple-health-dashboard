@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { JWTPayload } from 'jose';
 import {
   buildWwwAuthenticate,
+  classifyJwtVerificationError,
   extractBearerToken,
-  extractScopes
+  extractScopes,
+  getMcpAccessTokenDiagnostic,
+  McpAccessTokenError
 } from './oauth.js';
 import type { ChatGptMcpRuntimeConfig } from './runtimeConfig.js';
 
@@ -27,6 +30,27 @@ describe('ChatGPT MCP OAuth helpers', () => {
       'meal.write',
       'profile'
     ]);
+  });
+
+  it('reports only safe token rejection categories', () => {
+    expect(
+      classifyJwtVerificationError({
+        code: 'ERR_JWT_CLAIM_VALIDATION_FAILED',
+        claim: 'aud',
+        payload: 'must-not-be-logged'
+      })
+    ).toBe('jwt_audience_mismatch');
+    expect(
+      classifyJwtVerificationError({ code: 'ERR_JWT_EXPIRED' })
+    ).toBe('jwt_expired');
+    expect(
+      getMcpAccessTokenDiagnostic(
+        new McpAccessTokenError('missing_health_scope')
+      )
+    ).toBe('missing_health_scope');
+    expect(getMcpAccessTokenDiagnostic(new Error('secret'))).toBe(
+      'unexpected_error'
+    );
   });
 
   it('advertises the protected-resource metadata and least-privilege scopes', () => {

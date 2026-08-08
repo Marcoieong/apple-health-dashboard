@@ -11,6 +11,64 @@ import {
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
+export type McpAccessTokenDiagnostic =
+  | 'jwt_issuer_mismatch'
+  | 'jwt_audience_mismatch'
+  | 'jwt_expired'
+  | 'jwt_signature_invalid'
+  | 'jwt_verification_failed'
+  | 'missing_subject'
+  | 'subject_mismatch'
+  | 'missing_health_scope'
+  | 'unexpected_error';
+
+export class McpAccessTokenError extends Error {
+  readonly diagnostic: McpAccessTokenDiagnostic;
+
+  constructor(diagnostic: McpAccessTokenDiagnostic, cause?: unknown) {
+    super('MCP access token rejected.');
+    this.name = 'McpAccessTokenError';
+    this.diagnostic = diagnostic;
+    this.cause = cause;
+  }
+}
+
+function objectProperty(value: unknown, key: string): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+  return Reflect.get(value, key);
+}
+
+export function classifyJwtVerificationError(
+  error: unknown
+): McpAccessTokenDiagnostic {
+  const code = objectProperty(error, 'code');
+  const claim = objectProperty(error, 'claim');
+
+  if (claim === 'iss') {
+    return 'jwt_issuer_mismatch';
+  }
+  if (claim === 'aud') {
+    return 'jwt_audience_mismatch';
+  }
+  if (code === 'ERR_JWT_EXPIRED') {
+    return 'jwt_expired';
+  }
+  if (code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+    return 'jwt_signature_invalid';
+  }
+  return 'jwt_verification_failed';
+}
+
+export function getMcpAccessTokenDiagnostic(
+  error: unknown
+): McpAccessTokenDiagnostic {
+  return error instanceof McpAccessTokenError
+    ? error.diagnostic
+    : 'unexpected_error';
+}
+
 function getRemoteJwks(url: URL): ReturnType<typeof createRemoteJWKSet> {
   const key = url.href;
   const existing = jwksByUrl.get(key);
@@ -63,21 +121,29 @@ export async function verifyMcpAccessToken(
   token: string,
   config: ChatGptMcpRuntimeConfig
 ): Promise<AuthInfo> {
-  const verified = await jwtVerify(token, getRemoteJwks(config.jwksUri), {
-    issuer: config.issuer,
-    audience: config.audience
-  });
+  let verified;
+  try {
+    verified = await jwtVerify(token, getRemoteJwks(config.jwksUri), {
+      issuer: config.issuer,
+      audience: config.audience
+    });
+  } catch (error) {
+    throw new McpAccessTokenError(
+      classifyJwtVerificationError(error),
+      error
+    );
+  }
   const subject = verified.payload.sub;
   if (!subject) {
-    throw new Error('Access token has no subject.');
+    throw new McpAccessTokenError('missing_subject');
   }
   if (subject !== config.allowedSubject) {
-    throw new Error('Access token subject is not the configured owner.');
+    throw new McpAccessTokenError('subject_mismatch');
   }
 
   const scopes = extractScopes(verified.payload);
   if (!SUPPORTED_MCP_SCOPES.some((scope) => scopes.includes(scope))) {
-    throw new Error('Access token has no supported health scope.');
+    throw new McpAccessTokenError('missing_health_scope');
   }
 
   return {

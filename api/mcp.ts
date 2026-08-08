@@ -10,6 +10,7 @@ import {
   buildWwwAuthenticate,
   createMealMcpServer,
   extractBearerToken,
+  getMcpAccessTokenDiagnostic,
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
   normalizeMcpPostAcceptHeader,
@@ -59,7 +60,11 @@ export default async function handler(
   if (token) {
     try {
       request.auth = await verifyMcpAccessToken(token, config);
-    } catch {
+    } catch (error) {
+      console.warn(
+        '[mcp.oauth] access token rejected:',
+        getMcpAccessTokenDiagnostic(error)
+      );
       response.setHeader('WWW-Authenticate', buildWwwAuthenticate(config));
       sendJson(response, 401, { error: 'invalid_token' });
       return;
