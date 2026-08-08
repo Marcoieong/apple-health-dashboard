@@ -12,6 +12,7 @@ import {
   extractBearerToken,
   getChatGptMcpReadiness,
   loadChatGptMcpRuntimeConfig,
+  normalizeMcpPostAcceptHeader,
   verifyMcpAccessToken
 } from '../server/meal-photo-mcp/index.js';
 
@@ -79,11 +80,16 @@ export default async function handler(
       : undefined
   );
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true
   });
 
   try {
     await server.connect(transport);
+    request.headers.accept = normalizeMcpPostAcceptHeader(
+      request.method,
+      request.headers.accept
+    );
     await transport.handleRequest(request, response, request.body);
   } finally {
     await transport.close();

@@ -10,4 +10,5 @@ export * from './runtimeConfig.js';
 export * from './shortcutAuth.js';
 export * from './shortcutIngest.js';
 export * from './toolDescriptor.js';
+export * from './transportCompatibility.js';
 export * from './validation.js';
