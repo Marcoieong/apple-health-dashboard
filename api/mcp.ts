@@ -51,18 +51,17 @@ export default async function handler(
 
   const config = loadChatGptMcpRuntimeConfig();
   const token = extractBearerToken(request.headers.authorization);
-  if (!token) {
-    response.setHeader('WWW-Authenticate', buildWwwAuthenticate(config));
-    sendJson(response, 401, { error: 'unauthorized' });
-    return;
-  }
-
-  try {
-    request.auth = await verifyMcpAccessToken(token, config);
-  } catch {
-    response.setHeader('WWW-Authenticate', buildWwwAuthenticate(config));
-    sendJson(response, 401, { error: 'invalid_token' });
-    return;
+  // ChatGPT scans the MCP tool catalogue before completing OAuth. Keep
+  // discovery public, while every private health tool still enforces the
+  // verified `health.read` scope inside its handler.
+  if (token) {
+    try {
+      request.auth = await verifyMcpAccessToken(token, config);
+    } catch {
+      response.setHeader('WWW-Authenticate', buildWwwAuthenticate(config));
+      sendJson(response, 401, { error: 'invalid_token' });
+      return;
+    }
   }
 
   const healthReadConfig = readiness.healthReadConfigured
