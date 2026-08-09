@@ -110,35 +110,33 @@ final class HealthBridgeViewModel: NSObject, ObservableObject {
         defer {
             isWorking = false
             webAuthenticationSession = nil
+            expectedState = nil
         }
         if let authenticationError = error as? ASWebAuthenticationSessionError,
            authenticationError.code == .canceledLogin {
             statusMessage = "已取消配對"
             return
         }
-        guard error == nil,
-              let callbackURL,
-              callbackURL.scheme == AppConfiguration.callbackScheme,
-              callbackURL.host == "enroll",
-              let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-              components.queryItems?.first(where: { $0.name == "state" })?.value == expectedState,
-              let fragment = components.fragment,
-              let fragmentComponents = URLComponents(string: "healthbridge://fragment?\(fragment)"),
-              let token = fragmentComponents.queryItems?.first(where: { $0.name == "token" })?.value,
-              let deviceId = fragmentComponents.queryItems?.first(where: { $0.name == "device_installation_id" })?.value,
-              deviceId == credentialStore.deviceInstallationId,
-              let baseURLValue = fragmentComponents.queryItems?.first(where: { $0.name == "base_url" })?.value,
-              let baseURL = URL(string: baseURLValue) else {
+        if let error {
             statusMessage = "配對未完成"
-            alertMessage = "配對回應無效，沒有儲存任何金鑰。"
+            alertMessage = error.localizedDescription
             return
         }
         do {
-            try credentialStore.saveToken(token)
-            credentialStore.baseURL = baseURL
+            let payload = try EnrollmentCallbackParser.parse(
+                callbackURL: callbackURL,
+                expectedState: expectedState ?? "",
+                expectedDeviceId: credentialStore.deviceInstallationId,
+                expectedBaseURL: credentialStore.baseURL,
+                callbackScheme: AppConfiguration.callbackScheme
+            )
+            try credentialStore.saveToken(payload.token)
+            credentialStore.baseURL = payload.baseURL
             isPaired = true
             statusMessage = "帳戶配對完成"
         } catch {
+            isPaired = credentialStore.loadToken() != nil
+            statusMessage = "配對未完成"
             alertMessage = error.localizedDescription
         }
     }

@@ -41,6 +41,17 @@ describe('HealthBridge enrollment', () => {
     expect(callback.split('#')[0]).not.toContain('secret-token');
   });
 
+  it('percent-encodes the callback base URL exactly once', () => {
+    const callback = buildHealthBridgeCallbackUrl(
+      input,
+      'secret-token',
+      new URL('https://preview.example.test/path?ignored=yes')
+    );
+    const fragment = new URLSearchParams(callback.split('#')[1]);
+    expect(fragment.get('base_url')).toBe('https://preview.example.test');
+    expect(fragment.get('device_installation_id')).toBe(input.deviceInstallationId);
+  });
+
   it('renders an explicit consent page without the credential', () => {
     const html = renderHealthBridgeEnrollmentPage(input);
     expect(html).toContain('授權這部 iPhone');
