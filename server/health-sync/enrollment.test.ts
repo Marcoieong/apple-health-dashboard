@@ -30,15 +30,15 @@ describe('HealthBridge enrollment', () => {
     );
   });
 
-  it('keeps the credential in the callback fragment', () => {
+  it('returns a complete custom-scheme callback without a fragment', () => {
     const callback = buildHealthBridgeCallbackUrl(
       input,
       'secret-token',
       new URL('https://preview.example.test/path')
     );
     expect(callback).toContain('healthbridge://enroll?state=');
-    expect(callback).toContain('#token=secret-token');
-    expect(callback.split('#')[0]).not.toContain('secret-token');
+    expect(callback).toContain('&token=secret-token');
+    expect(callback).not.toContain('#');
   });
 
   it('percent-encodes the callback base URL exactly once', () => {
@@ -47,9 +47,10 @@ describe('HealthBridge enrollment', () => {
       'secret-token',
       new URL('https://preview.example.test/path?ignored=yes')
     );
-    const fragment = new URLSearchParams(callback.split('#')[1]);
-    expect(fragment.get('base_url')).toBe('https://preview.example.test');
-    expect(fragment.get('device_installation_id')).toBe(input.deviceInstallationId);
+    const query = new URL(callback).searchParams;
+    expect(query.get('base_url')).toBe('https://preview.example.test');
+    expect(query.get('device_installation_id')).toBe(input.deviceInstallationId);
+    expect(query.get('state')).toBe(input.state);
   });
 
   it('renders an explicit consent page without the credential', () => {

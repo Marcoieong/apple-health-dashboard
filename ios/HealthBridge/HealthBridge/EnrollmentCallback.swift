@@ -67,27 +67,34 @@ enum EnrollmentCallbackParser {
         guard !expectedState.isEmpty, returnedState == expectedState else {
             throw EnrollmentCallbackError.stateMismatch
         }
-        guard let encodedFragment = components.percentEncodedFragment,
-              !encodedFragment.isEmpty,
-              let fragmentComponents = URLComponents(
-                  string: "https://healthbridge.invalid/?\(encodedFragment)"
-              ) else {
+        let payloadItems: [URLQueryItem]?
+        if value(named: "token", in: components.queryItems) != nil {
+            payloadItems = components.queryItems
+        } else if let encodedFragment = components.percentEncodedFragment,
+                  !encodedFragment.isEmpty,
+                  let fragmentComponents = URLComponents(
+                      string: "https://healthbridge.invalid/?\(encodedFragment)"
+                  ) {
+            // Accept callbacks issued by the previous server version so an
+            // in-flight authentication session can still complete safely.
+            payloadItems = fragmentComponents.queryItems
+        } else {
             throw EnrollmentCallbackError.missingFragment
         }
-        guard let token = value(named: "token", in: fragmentComponents.queryItems),
+        guard let token = value(named: "token", in: payloadItems),
               token.count >= 32 else {
             throw EnrollmentCallbackError.missingToken
         }
         guard let deviceId = value(
             named: "device_installation_id",
-            in: fragmentComponents.queryItems
+            in: payloadItems
         ) else {
             throw EnrollmentCallbackError.missingDeviceId
         }
         guard deviceId == expectedDeviceId else {
             throw EnrollmentCallbackError.deviceMismatch
         }
-        guard let baseURLValue = value(named: "base_url", in: fragmentComponents.queryItems) else {
+        guard let baseURLValue = value(named: "base_url", in: payloadItems) else {
             throw EnrollmentCallbackError.missingBaseURL
         }
         let baseURL = try normalizedHTTPSOrigin(from: baseURLValue)

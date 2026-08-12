@@ -219,7 +219,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = HealthBridge/HealthBridge.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 4UG593NGDL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -242,7 +242,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = HealthBridge/HealthBridge.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 4UG593NGDL;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = HealthBridge/Info.plist;

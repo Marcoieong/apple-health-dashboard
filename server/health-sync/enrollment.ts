@@ -38,8 +38,8 @@ export function buildHealthBridgeCallbackUrl(
   baseUrl: URL
 ): string {
   const callback = new URL('healthbridge://enroll');
-  callback.searchParams.set('state', input.state);
-  callback.hash = new URLSearchParams({
+  callback.search = new URLSearchParams({
+    state: input.state,
     token,
     device_installation_id: input.deviceInstallationId,
     base_url: baseUrl.origin
