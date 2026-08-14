@@ -138,7 +138,7 @@ export async function issueHealthSyncCredential(
       `update health_sync_credentials
        set revoked_at = now()
        where owner_id = $1 and device_installation_id = $2
-         and revoked_at is null and last_used_at is null`,
+         and revoked_at is null`,
       [ownerId, deviceInstallationId]
     ),
     tx.query(
