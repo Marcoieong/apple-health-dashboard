@@ -1,11 +1,20 @@
 // @vitest-environment node
 
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HealthSyncConfig } from './config.js';
 import {
+  issueHealthSyncCredential,
   openHealthSyncCredential,
   sealHealthSyncCredential
 } from './credentials.js';
+
+const databaseMock = vi.hoisted(() => ({
+  transaction: vi.fn()
+}));
+
+vi.mock('@neondatabase/serverless', () => ({
+  neon: vi.fn(() => databaseMock)
+}));
 
 function config(secret: string): HealthSyncConfig {
   return {
@@ -22,6 +31,10 @@ const claims = {
 };
 
 describe('Health sync device credentials', () => {
+  beforeEach(() => {
+    databaseMock.transaction.mockReset();
+  });
+
   it('round trips only the dedicated health.sync claims', async () => {
     const active = config('secret-one');
     const token = await sealHealthSyncCredential(
@@ -49,5 +62,55 @@ describe('Health sync device credentials', () => {
     await expect(
       openHealthSyncCredential(segments.join('.'), config('secret-one'))
     ).resolves.toBeUndefined();
+  });
+
+  it('serializes enrollment and releases only the oldest never-used slot at the limit', async () => {
+    const queries: Array<{ statement: string; params: unknown[] }> = [];
+    databaseMock.transaction.mockImplementation(
+      async (
+        build: (tx: {
+          query: (statement: string, params: unknown[]) => unknown;
+        }) => unknown[]
+      ) => {
+        const operations = build({
+          query(statement, params) {
+            queries.push({ statement, params });
+            if (queries.length === 5) {
+              return [
+                {
+                  id: claims.credentialId,
+                  device_installation_id: claims.deviceInstallationId,
+                  label: 'iPhone TEST01',
+                  created_at: '2026-08-15T04:00:00.000Z',
+                  last_used_at: null,
+                  expires_at: '2027-08-15T04:00:00.000Z'
+                }
+              ];
+            }
+            return [];
+          }
+        });
+        return operations;
+      }
+    );
+
+    await expect(
+      issueHealthSyncCredential(
+        claims.ownerId,
+        claims.deviceInstallationId,
+        'iPhone TEST01',
+        config('secret-one')
+      )
+    ).resolves.toMatchObject({
+      deviceInstallationId: claims.deviceInstallationId,
+      label: 'iPhone TEST01'
+    });
+
+    expect(queries).toHaveLength(5);
+    expect(queries[1].statement).toContain('pg_advisory_xact_lock');
+    expect(queries[3].statement).toContain('oldest_unused');
+    expect(queries[3].statement).toContain('last_used_at is null');
+    expect(queries[3].statement).toContain('count(*) - 4');
+    expect(queries[4].statement).toContain('insert into health_sync_credentials');
   });
 });

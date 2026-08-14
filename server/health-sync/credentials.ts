@@ -133,6 +133,7 @@ export async function issueHealthSyncCredential(
   const sql = neon(config.databaseUrl);
   const results = await sql.transaction((tx) => [
     tx.query(`select set_config('app.owner_id', $1, true)`, [ownerId]),
+    tx.query(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [ownerId]),
     tx.query(
       `update health_sync_credentials
        set revoked_at = now()
@@ -141,10 +142,21 @@ export async function issueHealthSyncCredential(
       [ownerId, deviceInstallationId]
     ),
     tx.query(
-      `update health_sync_credentials
+      `with active_limit as (
+         select greatest(count(*) - 4, 0)::integer as slots_to_release
+         from health_sync_credentials
+         where owner_id = $1 and revoked_at is null and expires_at > now()
+       ), oldest_unused as (
+         select id
+         from health_sync_credentials
+         where owner_id = $1 and revoked_at is null and expires_at > now()
+           and last_used_at is null
+         order by created_at asc
+         limit (select slots_to_release from active_limit)
+       )
+       update health_sync_credentials
        set revoked_at = now()
-       where owner_id = $1 and revoked_at is null and last_used_at is null
-         and created_at < now() - interval '1 hour'`,
+       where id in (select id from oldest_unused)`,
       [ownerId]
     ),
     tx.query(
@@ -167,7 +179,7 @@ export async function issueHealthSyncCredential(
       ]
     )
   ]);
-  const rows = results[3] as Row[];
+  const rows = results[4] as Row[];
   if (rows.length !== 1) throw new Error('credential_limit');
   return { ...mapSummary(rows[0]), token };
 }
