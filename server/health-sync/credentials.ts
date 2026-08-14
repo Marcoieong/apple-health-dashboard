@@ -141,6 +141,13 @@ export async function issueHealthSyncCredential(
       [ownerId, deviceInstallationId]
     ),
     tx.query(
+      `update health_sync_credentials
+       set revoked_at = now()
+       where owner_id = $1 and revoked_at is null and last_used_at is null
+         and created_at < now() - interval '1 hour'`,
+      [ownerId]
+    ),
+    tx.query(
       `insert into health_sync_credentials
          (id, owner_id, device_installation_id, token_hash, label, expires_at)
        select $1::uuid, $2, $3, $4, $5, $6::timestamptz
@@ -160,7 +167,7 @@ export async function issueHealthSyncCredential(
       ]
     )
   ]);
-  const rows = results[2] as Row[];
+  const rows = results[3] as Row[];
   if (rows.length !== 1) throw new Error('credential_limit');
   return { ...mapSummary(rows[0]), token };
 }
