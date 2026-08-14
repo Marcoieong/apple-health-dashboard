@@ -2,7 +2,7 @@
 
 一個以澳門日常生活與 iPhone Safari 為優先的家庭健康習慣 Dashboard。公開部分只顯示 Demo Data；獲邀請的家庭成員可用自己的帳戶登入，各自查看私人餐食紀錄及受保護縮圖。網站不提供人工健康資料輸入，餐食由每位成員自己的 iPhone Shortcut 寫入。健康指標頁會計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
 
-> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。正式網站現階段仍未直接連接 Apple Health；首次開啟的 14 日資料是虛構示例，清楚標示為 **Demo Data · 非真實資料**。
+> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。一般網頁不會直接讀取 Apple Health；私人資料須由 iPhone HealthBridge 授權、聚合及同步。未登入時的 14 日資料是虛構示例，清楚標示為 **Demo Data · 非真實資料**。
 
 ## 功能
 
@@ -16,7 +16,7 @@
 - 成員資料隔離：每個帳戶使用獨立擁有人 ID 與 PostgreSQL RLS；家庭管理員不會預設看到其他成員資料
 - iPhone Shortcut 導入：每位成員可建立及撤銷自己的 Bearer 金鑰；Base64 圖片會清除 EXIF/GPS、重試去重並存入私人儲存
 - 私人唯讀日誌：登入後只讀取該成員自己的餐食摘要與短效受保護縮圖
-- HealthKit 同步（開發分支）：日級聚合後端、每裝置憑證、PostgreSQL RLS，以及可編譯的原生 iPhone HealthBridge；仍待首次真機保存驗收
+- HealthKit 同步：日級聚合後端、每裝置憑證、PostgreSQL RLS 及原生 iPhone HealthBridge；現階段以手動同步為可靠邊界，背景頻率尚未承諾
 - ChatGPT 唯讀健康工具（開發分支）：OAuth `health.read` 可讀取日級摘要與同步狀態；按需讀取已保存資料，尚未更新正式 Connector
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
 - 基礎 PWA：manifest、service worker、standalone 顯示與離線開啟已建置內容
@@ -31,7 +31,7 @@
 - Playwright Chromium 端到端與響應式測試
 - Vite PWA plugin
 
-主要模組位於 `src/features`、`src/lib`、`src/models` 及 `src/services`。評分是純函數；預留的本機儲存與資料轉換集中在 service，React 元件不直接操作 `localStorage`。公開介面只讀取資料，不暴露修改控制。完整資料流、更新時機及交付狀態見 [系統架構](docs/SYSTEM_ARCHITECTURE.md)。
+主要模組位於 `src/features`、`src/hooks`、`src/lib`、`src/models` 及 `src/services`。家庭身份由獨立 session hook 管理，各 feature 只取得自己的資料；評分是純函數，React 元件不直接操作 `localStorage`。公開介面只讀取資料，不暴露修改控制。完整資料流見 [系統架構](docs/SYSTEM_ARCHITECTURE.md)，擴展風險及 household 權限路線見 [APP 架構審查](docs/ARCHITECTURE_REVIEW.md)。
 
 ## 安裝與啟動
 
@@ -100,18 +100,18 @@ pnpm exec playwright install chromium
 
 ## 已知限制
 
-- 正式網站未直接連接 Apple Health／HealthKit
-- 健康同步後端及 iOS HealthBridge 已在開發分支完成；尚未取得首次真機保存證據
-- 健康指標仍是 Demo Data；尚未由 Apple Health 自動同步
+- 一般網站及 ChatGPT 不能直接讀 Apple Health；必須經 iPhone HealthBridge 同步
+- HealthBridge 現階段以手動同步為可靠邊界；iOS 背景執行時間不能保證
+- 未登入時健康指標仍是 Demo Data；登入後才可讀取該成員已同步的私人摘要
 - 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
 - Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
 - 家庭邀請目前由部署 allowlist 管理，尚未提供管理員自助邀請頁
 - 各成員可撤銷自己的 iPhone 金鑰，但餐食自助刪除及家庭資料匯出仍未完成
-- ChatGPT 唯讀健康工具已在開發分支完成，但尚未部署 Preview、更新 Connector 或取得真實 Apple Health 閉環證據
+- ChatGPT 唯讀健康工具只按需讀取已同步資料；不能觸發 HealthKit 或充當排程器
 - 沒有定時 AI 自動分析；ChatGPT 只在對話中獲授權呼叫時按需解讀
 - PWA 離線只保證已快取介面可開啟；私人 `/api/` 資料明確不進 service worker cache
 - 月度比較只依賴可讀取的紀錄；缺失欄位會以「—」顯示
 
 ## 下一個小階段
 
-把現有 iOS HealthBridge 安裝到已連接的 iPhone，以一個真實請求核對 API 收據、資料庫 row、Dashboard 顯示及 ChatGPT 同日摘要。確認完整閉環後才加入背景同步、提升至正式網域或邀請其他家庭成員。操作見 [HealthBridge 首次真機同步](docs/HEALTHBRIDGE_FIRST_SYNC.md)，完整路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
+建立前後端共用的版本化資料 contract 及 contract tests，然後加入 `households`／`household_memberships` 骨架與跨帳戶負面測試；這一步先建立家庭基礎，不會自動開放任何家人的健康資料。實施次序見 [APP 架構審查](docs/ARCHITECTURE_REVIEW.md)，HealthKit 路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。

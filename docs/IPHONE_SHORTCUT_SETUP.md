@@ -37,8 +37,8 @@ iPhone Shortcut
    - 晚餐 → `dinner`
    - 小食 → `snack`
 6. 加入「要求輸入」，提示為「食物種類，以逗號分隔」，例如 `雞肉,西蘭花,白飯`。
-7. 把輸入文字以逗號「分割文字」，得到食物標籤清單。
-8. 可選：再要求輸入「烹調方式」，例如 `烤,清蒸`，同樣以逗號分割。
+7. 可直接把輸入文字送出；伺服器會接受半形逗號、全形逗號、頓號或換行並轉成清單。若捷徑已使用「分割文字」，清單格式亦繼續支援。
+8. 可選：再要求輸入「烹調方式」，例如 `烤,清蒸`。留空時不需要加入這個欄位，Dashboard 會顯示「尚未標示」。
 9. 加入「目前日期」，再用「格式化日期」設為自訂格式 `yyyy-MM-dd`。
 10. 加入「產生 UUID」。這個值作為本次要求的 `client_request_id`。
 11. 建立一個「字典」作為相片項目：
@@ -61,12 +61,12 @@ iPhone Shortcut
   "local_date": "選取格式化日期的魔術變數",
   "timezone": "Asia/Macau",
   "meal_type": "選取餐別的英文值",
-  "food_labels": "選取食物標籤清單",
-  "preparation_methods": "選取烹調方式清單"
+  "food_labels": "選取食物種類文字或清單",
+  "preparation_methods": "選取烹調方式文字或清單"
 }
 ```
 
-`notes` 是可選字串；不需要時不要加入。食物種類最多 30 項、每項最多 80 字；做法最多 12 項、每項最多 60 字；備註最多 500 字。
+`notes`、`food_labels` 及 `preparation_methods` 都可省略。食物種類最多 30 項、每項最多 80 字；做法最多 12 項、每項最多 60 字；備註最多 500 字。`local_date` 必須是澳門當地日期的 `yyyy-MM-dd`，`timezone` 固定為 `Asia/Macau`。
 
 14. 加入「取得 URL 的內容」：
    - URL：`https://health.pui-pui.org/api/shortcut/meal`
@@ -99,7 +99,7 @@ iPhone Shortcut
 ## 常見錯誤
 
 - `401 unauthorized`：上傳金鑰錯誤、前後有空格、已過期或已被撤銷。
-- `400 invalid_input`：日期、餐別、欄位或 Base64 格式不正確。
+- `400 invalid_input`：日期、餐別、欄位或 Base64 格式不正確。若 diagnostic 是 `local_date`，確認「格式化日期」只輸出 `yyyy-MM-dd`，不要再由外層格式化一次。
 - `409 idempotency_conflict`：同一 UUID 曾配合不同內容使用；重新產生 UUID 再送出。
 - `415 unsupported_image`：圖片格式不支援、宣告類型與內容不符或圖片太大。
 - `503 service_locked`：部署環境尚未完整設定秘密或私人儲存。

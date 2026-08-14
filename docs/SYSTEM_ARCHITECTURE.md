@@ -44,7 +44,7 @@ ChatGPT 經 OAuth MCP 按需呼叫唯讀工具，讀取私人資料庫內已同�
 
 | 部分 | 何時更新 | 現階段承諾 |
 | --- | --- | --- |
-| Apple Health → 私人資料庫 | 使用者在 HealthBridge 手動同步；其後才加 iOS background delivery | 尚未完成真機閉環，沒有固定頻率 |
+| Apple Health → 私人資料庫 | 使用者在 HealthBridge 手動同步；其後才加 iOS background delivery | 手動同步完成時更新；背景頻率仍未承諾 |
 | 私人資料庫 → Dashboard | 登入／開頁及畫面重新取得資料時 | 顯示最近一次成功保存的資料 |
 | 私人資料庫 → ChatGPT | 每次對話實際呼叫健康工具時 | 按需讀取，不是排程同步 |
 | 餐食 Shortcut → Dashboard | Shortcut 成功上傳後，下次取得餐食列表 | 依上傳成功時間 |
@@ -58,8 +58,10 @@ iOS 背景工作由系統排程，即使第二階段加入 background delivery�
 - **真機已驗證**：一個全新 iPhone 請求的 API 收據、資料庫 row、Dashboard 與 ChatGPT 同日結果全部一致。
 - **正式啟用**：真機驗證後，經使用者確認才 promote 至正式網域。
 
-目前健康後端、私人 Dashboard 顯示及 ChatGPT 唯讀工具屬開發分支能力；尚不可稱為 Apple Health 正式自動同步。
+目前架構支援健康後端、私人 Dashboard 顯示及 ChatGPT 唯讀工具，但仍不可稱為 Apple Health 即時或固定頻率自動同步。每次發布狀態應以同步收據、資料庫 row、Dashboard 及 ChatGPT 同日結果核對。
 
 ## 家庭擴展閘門
 
 新增家人前，先在 Preview 完成該成員自己的登入、空狀態、獨立 iPhone 憑證及跨帳戶負面測試。Marco 的固定 Connector owner mapping 只供現有資料遷移，不能複製給家人。任何家庭共享檢視都必須逐項同意及另設授權模型。
+
+詳細風險、目標 household 模型及實施次序見 [APP 架構審查與家庭版演進方案](ARCHITECTURE_REVIEW.md)。
