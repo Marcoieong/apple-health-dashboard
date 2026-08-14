@@ -43,7 +43,16 @@ type PrivateRouteHandler = (
 function getRoutePath(request: VercelRequest): string {
   const path = request.query.path;
   if (Array.isArray(path)) return path.join('/');
-  return typeof path === 'string' ? path : '';
+  if (typeof path === 'string' && path) return path;
+
+  try {
+    const pathname = new URL(request.url ?? '', 'https://health.local').pathname;
+    const prefix = '/api/private/';
+    if (!pathname.startsWith(prefix)) return '';
+    return pathname.slice(prefix.length).replace(/^\/+|\/+$/g, '');
+  } catch {
+    return '';
+  }
 }
 
 const healthDevicesHandler: PrivateRouteHandler = async (request, response) => {

@@ -146,17 +146,27 @@ export async function issueHealthSyncCredential(
          select greatest(count(*) - 4, 0)::integer as slots_to_release
          from health_sync_credentials
          where owner_id = $1 and revoked_at is null and expires_at > now()
-       ), oldest_unused as (
-         select id
-         from health_sync_credentials
-         where owner_id = $1 and revoked_at is null and expires_at > now()
-           and last_used_at is null
-         order by created_at asc
+       ), oldest_unpaired as (
+         select credential.id
+         from health_sync_credentials credential
+         where credential.owner_id = $1
+           and credential.revoked_at is null
+           and credential.expires_at > now()
+           and (
+             credential.last_used_at is null
+             or not exists (
+               select 1
+               from health_sync_devices device
+               where device.owner_id = credential.owner_id
+                 and device.device_installation_id = credential.device_installation_id
+             )
+           )
+         order by credential.created_at asc
          limit (select slots_to_release from active_limit)
        )
        update health_sync_credentials
        set revoked_at = now()
-       where id in (select id from oldest_unused)`,
+       where id in (select id from oldest_unpaired)`,
       [ownerId]
     ),
     tx.query(

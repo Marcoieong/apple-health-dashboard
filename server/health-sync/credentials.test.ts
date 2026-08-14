@@ -64,7 +64,7 @@ describe('Health sync device credentials', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('replaces the same installation credential and releases only the oldest never-used slot at the limit', async () => {
+  it('replaces the same installation credential and releases only the oldest never-synced slot at the limit', async () => {
     const queries: Array<{ statement: string; params: unknown[] }> = [];
     databaseMock.transaction.mockImplementation(
       async (
@@ -110,8 +110,10 @@ describe('Health sync device credentials', () => {
     expect(queries[1].statement).toContain('pg_advisory_xact_lock');
     expect(queries[2].statement).toContain('device_installation_id = $2');
     expect(queries[2].statement).not.toContain('last_used_at is null');
-    expect(queries[3].statement).toContain('oldest_unused');
+    expect(queries[3].statement).toContain('oldest_unpaired');
     expect(queries[3].statement).toContain('last_used_at is null');
+    expect(queries[3].statement).toContain('not exists');
+    expect(queries[3].statement).toContain('health_sync_devices');
     expect(queries[3].statement).toContain('count(*) - 4');
     expect(queries[4].statement).toContain('insert into health_sync_credentials');
   });
