@@ -177,6 +177,20 @@ test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({
 });
 
 test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Data', async ({ page }) => {
+  const privateHealthDays = Array.from({ length: 30 }, (_, index) => {
+    const day = String(index + 1).padStart(2, '0');
+    return {
+      local_date: `2030-01-${day}`,
+      timezone: 'Asia/Macau',
+      source_updated_at: `2030-01-${day}T13:00:00.000Z`,
+      steps: 9_000 + index * 125,
+      active_energy_kcal: 500 + index * 4,
+      exercise_minutes: 30 + (index % 16),
+      sleep_hours: 7 + (index % 4) * 0.25,
+      weight_kg: 98 - index * 0.04,
+      body_fat_percent: 32 - index * 0.02,
+    };
+  });
   await page.unroute('**/api/auth/session');
   await page.route('**/api/auth/session', async (route) => {
     await route.fulfill({
@@ -205,19 +219,7 @@ test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Dat
       headers: { 'Cache-Control': 'private, no-store' },
       body: JSON.stringify({
         range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
-        days: [
-          {
-            local_date: '2030-01-02',
-            timezone: 'Asia/Macau',
-            source_updated_at: '2030-01-02T13:00:00.000Z',
-            steps: 12345,
-            active_energy_kcal: 678,
-            exercise_minutes: 46,
-            sleep_hours: 7.75,
-            weight_kg: 96.8,
-            body_fat_percent: 31.9,
-          },
-        ],
+        days: privateHealthDays,
       }),
     });
   });
@@ -241,10 +243,15 @@ test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Dat
   await page.goto('/');
 
   await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
-  await expect(page.getByText('1 部裝置')).toBeVisible();
-  await expect(page.getByText('12,345 步', { exact: true })).toBeVisible();
+  await expect(page.getByText(/已載入 30 日 · 1\/1–1\/30 · 1 部裝置/)).toBeVisible();
+  await expect(page.getByText('12,625 步', { exact: true })).toBeVisible();
   await expect(page.getByText('Demo Data · 非真實資料')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('private-device-id-must-not-render');
+
+  await navigateTo(page, '每月');
+  await expect(page.getByRole('heading', { name: '最近 30 日活動與睡眠' })).toBeVisible();
+  await expect(page.getByText('1/1–1/30 · 30 日')).toBeVisible();
+  await expect(page.getByRole('img', { name: '最近30日 Apple Health 活動與睡眠趨勢圖' })).toBeVisible();
 });
 
 test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {

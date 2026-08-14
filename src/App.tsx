@@ -99,6 +99,9 @@ export default function App() {
           <HealthSyncStatus
             status={privateHealth.status}
             syncStatus={privateHealth.syncStatus}
+            recordCount={sorted.length}
+            rangeStart={sorted.at(0)?.date}
+            rangeEnd={sorted.at(-1)?.date}
             error={privateHealth.error}
             onRetry={privateHealth.refresh}
           />

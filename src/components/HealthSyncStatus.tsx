@@ -1,10 +1,14 @@
 import { CircleAlert, CircleCheck, LoaderCircle, RefreshCw, Smartphone } from 'lucide-react';
 import type { PrivateHealthStatus } from '../hooks/usePrivateHealth';
+import { formatShortDate } from '../lib/date';
 import type { PrivateHealthSyncStatus as SyncStatus } from '../lib/privateHealth';
 
 interface HealthSyncStatusProps {
   status: PrivateHealthStatus;
   syncStatus?: SyncStatus;
+  recordCount: number;
+  rangeStart?: string;
+  rangeEnd?: string;
   error?: string;
   onRetry: () => void;
 }
@@ -21,6 +25,9 @@ function formatSyncTime(value: string): string {
 export function HealthSyncStatus({
   status,
   syncStatus,
+  recordCount,
+  rangeStart,
+  rangeEnd,
   error,
   onRetry
 }: HealthSyncStatusProps) {
@@ -56,6 +63,9 @@ export function HealthSyncStatus({
 
   const hasDevice = Boolean(syncStatus?.deviceCount);
   const latestSyncAt = syncStatus?.latestSyncAt;
+  const coverage = recordCount > 0
+    ? `已載入 ${recordCount} 日${rangeStart && rangeEnd ? ` · ${formatShortDate(rangeStart)}–${formatShortDate(rangeEnd)}` : ''}`
+    : '尚未有可顯示資料';
   return (
     <aside className="health-sync-status" aria-label="Apple Health 同步狀態">
       {hasDevice ? <CircleCheck size={21} aria-hidden="true" /> : <Smartphone size={21} aria-hidden="true" />}
@@ -63,7 +73,7 @@ export function HealthSyncStatus({
         <strong>{hasDevice ? '私人 Apple Health 資料' : '等待連接 iPhone'}</strong>
         <span>
           {hasDevice
-            ? `${syncStatus?.deviceCount} 部裝置${latestSyncAt ? ` · 最近同步 ${formatSyncTime(latestSyncAt)}` : ''}`
+            ? `${coverage} · ${syncStatus?.deviceCount} 部裝置${latestSyncAt ? ` · 最近同步 ${formatSyncTime(latestSyncAt)}` : ''}`
             : '尚未收到 HealthKit 同步；Dashboard 會保持空白，不會以 Demo 代替。'}
         </span>
       </div>
