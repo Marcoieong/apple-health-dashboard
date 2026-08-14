@@ -134,7 +134,14 @@ final class HealthKitService {
                 quantitySamplePredicate: predicate,
                 options: .cumulativeSum
             ) { _, statistics, error in
-                if let error { continuation.resume(throwing: error); return }
+                if let error {
+                    if Self.isNoDataError(error) {
+                        continuation.resume(returning: nil)
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
+                    return
+                }
                 continuation.resume(returning: statistics?.sumQuantity()?.doubleValue(for: unit))
             }
             store.execute(query)
@@ -156,7 +163,14 @@ final class HealthKitService {
                 limit: 1,
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
             ) { _, samples, error in
-                if let error { continuation.resume(throwing: error); return }
+                if let error {
+                    if Self.isNoDataError(error) {
+                        continuation.resume(returning: nil)
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
+                    return
+                }
                 let sample = samples?.first as? HKQuantitySample
                 continuation.resume(returning: sample?.quantity.doubleValue(for: unit))
             }
@@ -174,7 +188,14 @@ final class HealthKitService {
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
             ) { _, samples, error in
-                if let error { continuation.resume(throwing: error); return }
+                if let error {
+                    if Self.isNoDataError(error) {
+                        continuation.resume(returning: [])
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
+                    return
+                }
                 let result = (samples as? [HKCategorySample] ?? []).compactMap { sample -> DateInterval? in
                     guard sample.value != HKCategoryValueSleepAnalysis.inBed.rawValue,
                           sample.value != HKCategoryValueSleepAnalysis.awake.rawValue else { return nil }
@@ -206,5 +227,9 @@ final class HealthKitService {
 
     private func rounded(_ value: Double) -> Double {
         (value * 100).rounded() / 100
+    }
+
+    private static func isNoDataError(_ error: Error) -> Bool {
+        (error as? HKError)?.code == .errorNoData
     }
 }

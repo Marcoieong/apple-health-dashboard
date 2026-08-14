@@ -15,6 +15,7 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ): Promise<void> {
+  let phase = 'request_validation';
   response.setHeader('Cache-Control', 'private, no-store');
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
@@ -24,7 +25,9 @@ export default async function handler(
 
   try {
     assertJsonRequest(request);
+    phase = 'configuration';
     const config = loadHealthSyncConfig();
+    phase = 'authentication';
     const token = extractHealthSyncBearerToken(request.headers.authorization);
     const claims = token
       ? await authenticateHealthSyncToken(token, config)
@@ -34,11 +37,13 @@ export default async function handler(
       return;
     }
 
+    phase = 'payload_validation';
     const input = parseHealthSyncInput(request.body);
     if (input.device_installation_id !== claims.deviceInstallationId) {
       response.status(403).json({ error: 'device_mismatch' });
       return;
     }
+    phase = 'database_write';
     const result = await applyHealthSync(
       claims.ownerId,
       input,
@@ -58,6 +63,16 @@ export default async function handler(
       response.status(415).json({ error: 'invalid_content_type' });
       return;
     }
+    const errorCode =
+      typeof (error as { code?: unknown })?.code === 'string' &&
+      /^[A-Za-z0-9_-]{1,40}$/.test((error as { code: string }).code)
+        ? (error as { code: string }).code
+        : undefined;
+    console.error('[health-sync] request failed', {
+      phase,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      ...(errorCode ? { errorCode } : {})
+    });
     response.status(503).json({ error: 'service_unavailable' });
   }
 }

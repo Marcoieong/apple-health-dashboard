@@ -55,6 +55,10 @@ export function createHealthSyncCursor(
   return `hsc1_${digest}`;
 }
 
+export function createHealthSyncLockKey(ownerId: string, syncId: string): string {
+  return JSON.stringify([ownerId, syncId]);
+}
+
 function metricValue(day: HealthSyncDayV1, key: keyof HealthSyncDayV1['metrics']) {
   return day.metrics[key] ?? null;
 }
@@ -82,7 +86,7 @@ export class NeonHealthSyncRepository implements HealthSyncRepository {
       tx.query(`select set_config('app.owner_id', $1, true)`, [ownerId]),
       tx.query(
         `select pg_advisory_xact_lock(hashtextextended($1, 0))`,
-        [`${ownerId}\0${sync.sync_id}`]
+        [createHealthSyncLockKey(ownerId, sync.sync_id)]
       ),
       tx.query(
         `insert into health_sync_requests (
@@ -206,7 +210,7 @@ export class NeonHealthSyncRepository implements HealthSyncRepository {
              response_snapshot = jsonb_build_object(
                'accepted_days', accepted_days,
                'changed_days', changed_days,
-               'cursor', $4,
+               'cursor', $4::text,
                'server_time', $5::timestamptz
              ),
              updated_at = now()
