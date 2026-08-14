@@ -151,6 +151,28 @@ describe('Shortcut meal parsing', () => {
     expect(parsed.input.local_date).toBe('2026-07-30');
   });
 
+  it('normalizes text selections from iPhone Shortcut into metadata lists', () => {
+    const parsed = parseShortcutMealInput({
+      ...validInput,
+      food_labels: '魚、蔬菜，豆腐',
+      preparation_methods: '蒸\n灼'
+    } as unknown as ShortcutMealInput);
+
+    expect(parsed.input.food_labels).toEqual(['魚', '蔬菜', '豆腐']);
+    expect(parsed.input.preparation_methods).toEqual(['蒸', '灼']);
+  });
+
+  it('treats blank optional Shortcut metadata as omitted', () => {
+    const parsed = parseShortcutMealInput({
+      ...validInput,
+      food_labels: '   ',
+      preparation_methods: ''
+    } as unknown as ShortcutMealInput);
+
+    expect(parsed.input.food_labels).toBeUndefined();
+    expect(parsed.input.preparation_methods).toBeUndefined();
+  });
+
   it('still rejects an unrecognized meal date', () => {
     expect(() =>
       parseShortcutMealInput({

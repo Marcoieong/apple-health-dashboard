@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AppShell, type AppView } from './components/AppShell';
 import { EmptyState } from './components/EmptyState';
 import { HealthSyncStatus } from './components/HealthSyncStatus';
-import { DailyDashboard } from './features/daily-dashboard/DailyDashboard';
-import { FoodJournal } from './features/food-journal/FoodJournal';
-import { MonthlyProgress } from './features/monthly-progress/MonthlyProgress';
-import { WeeklyTrends } from './features/weekly-trends/WeeklyTrends';
+import { useFamilySession } from './hooks/useFamilySession';
 import { useFoodJournal } from './hooks/useFoodJournal';
 import { useHealthRecords } from './hooks/useHealthRecords';
 import { usePrivateHealth } from './hooks/usePrivateHealth';
@@ -14,6 +11,27 @@ import { calculateWeeklySummary } from './lib/summaries';
 
 const THEME_KEY = 'personal-health-dashboard:theme';
 const APP_VIEWS = new Set<AppView>(['today', 'weekly', 'monthly', 'food-journal']);
+
+const DailyDashboard = lazy(() =>
+  import('./features/daily-dashboard/DailyDashboard').then((module) => ({
+    default: module.DailyDashboard
+  }))
+);
+const FoodJournal = lazy(() =>
+  import('./features/food-journal/FoodJournal').then((module) => ({
+    default: module.FoodJournal
+  }))
+);
+const MonthlyProgress = lazy(() =>
+  import('./features/monthly-progress/MonthlyProgress').then((module) => ({
+    default: module.MonthlyProgress
+  }))
+);
+const WeeklyTrends = lazy(() =>
+  import('./features/weekly-trends/WeeklyTrends').then((module) => ({
+    default: module.WeeklyTrends
+  }))
+);
 
 function initialView(): AppView {
   const requested = new URLSearchParams(window.location.search).get('section');
@@ -24,12 +42,17 @@ function initialView(): AppView {
 
 export default function App() {
   const { records } = useHealthRecords();
-  const foodJournal = useFoodJournal();
-  const { entries: foodJournalEntries } = foodJournal;
-  const isFamilyMember = foodJournal.status === 'authenticated';
-  const privateHealth = usePrivateHealth(isFamilyMember);
-  const activeRecords = isFamilyMember ? privateHealth.records : records;
   const [view, setView] = useState<AppView>(initialView);
+  const familySession = useFamilySession();
+  const isFamilyMember = familySession.status === 'authenticated';
+  const isFoodJournalView = view === 'food-journal';
+  const foodJournal = useFoodJournal(
+    isFamilyMember && isFoodJournalView,
+    familySession.refresh
+  );
+  const { entries: foodJournalEntries } = foodJournal;
+  const privateHealth = usePrivateHealth(isFamilyMember && !isFoodJournalView);
+  const activeRecords = isFamilyMember ? privateHealth.records : records;
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY);
     return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -62,12 +85,20 @@ export default function App() {
       <FoodJournal
         entries={foodJournal.entries}
         mode={foodJournal.mode}
-        status={foodJournal.status}
-        member={foodJournal.member}
-        error={foodJournal.error}
-        login={foodJournal.login}
-        logout={foodJournal.logout}
-        retry={foodJournal.retry}
+        sessionStatus={familySession.status}
+        loading={
+          isFamilyMember &&
+          (foodJournal.status === 'idle' || foodJournal.status === 'loading')
+        }
+        member={familySession.member}
+        error={familySession.error ?? foodJournal.error}
+        login={familySession.login}
+        logout={familySession.logout}
+        retry={
+          familySession.status === 'error'
+            ? familySession.refresh
+            : foodJournal.refresh
+        }
       />
     );
   } else if (isFamilyMember && privateHealth.status === 'loading') {
@@ -81,6 +112,18 @@ export default function App() {
   } else {
     content = <MonthlyProgress records={activeRecords} month={todayKey().slice(0, 7)} />;
   }
+
+  const resolvedContent = (
+    <Suspense
+      fallback={
+        <div className="empty-state" role="status" aria-live="polite">
+          <p>正在載入頁面…</p>
+        </div>
+      }
+    >
+      {content}
+    </Suspense>
+  );
 
   return (
     <AppShell
@@ -105,10 +148,10 @@ export default function App() {
             error={privateHealth.error}
             onRetry={privateHealth.refresh}
           />
-          {content}
+          {resolvedContent}
         </div>
       ) : (
-        content
+        resolvedContent
       )}
     </AppShell>
   );

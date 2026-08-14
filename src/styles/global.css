@@ -362,7 +362,7 @@ small { font-size: 0.78em; }
 .shortcut-credential-list strong, .shortcut-credential-list span { display: block; }
 .shortcut-credential-list span, .muted-copy { margin-top: 3px; color: var(--muted); font-size: .74rem; }
 .journal-access-error {
-  margin: -8px 0 0;
+  margin: 0;
   padding: 13px 15px;
   border: 1px solid color-mix(in srgb, var(--coral) 35%, var(--line));
   border-radius: 12px;
@@ -370,6 +370,9 @@ small { font-size: 0.78em; }
   background: var(--coral-soft);
   font-size: .84rem;
 }
+.journal-error-row { margin-top: -8px; display: flex; align-items: center; gap: 10px; }
+.journal-error-row .journal-access-error { flex: 1; }
+.journal-error-row .journal-lock-button { flex: 0 0 auto; }
 .journal-days { display: grid; gap: 30px; }
 .journal-day { content-visibility: auto; contain-intrinsic-size: 540px; }
 .journal-day-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -701,6 +704,7 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
   .journal-lock-button { min-width: 76px; }
   .family-login-panel { grid-template-columns: 1fr; padding: 16px; }
   .family-login-panel .primary-button { width: 100%; }
+  .journal-error-row { align-items: stretch; flex-direction: column; }
   .family-shortcut-panel summary { padding-inline: 16px; }
   .family-shortcut-content { padding-inline: 16px; }
   .shortcut-credential-actions .primary-button { width: 100%; }

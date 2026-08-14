@@ -17,13 +17,17 @@ import {
   mealTypeLabels,
   type FoodJournalEntry
 } from '../../models/foodJournal';
-import type { FamilyMember, FamilyViewStatus } from '../../hooks/useFoodJournal';
+import type {
+  FamilyMember,
+  FamilySessionStatus
+} from '../../hooks/useFamilySession';
 import { FamilyShortcutPanel } from './FamilyShortcutPanel';
 
 interface FoodJournalProps {
   entries: readonly FoodJournalEntry[];
   mode: 'demo' | 'private';
-  status: FamilyViewStatus;
+  sessionStatus: FamilySessionStatus;
+  loading: boolean;
   member?: FamilyMember;
   error?: string;
   login: () => void;
@@ -34,7 +38,8 @@ interface FoodJournalProps {
 export function FoodJournal({
   entries,
   mode,
-  status,
+  sessionStatus,
+  loading,
   member,
   error,
   login,
@@ -94,13 +99,13 @@ export function FoodJournal({
           <button
             className="primary-button"
             type="button"
-            onClick={status === 'error' ? () => void retry() : login}
-            disabled={status === 'checking' || status === 'loading'}
+            onClick={sessionStatus === 'error' ? () => void retry() : login}
+            disabled={sessionStatus === 'checking'}
           >
             <LogIn size={17} aria-hidden="true" />
-            {status === 'checking' || status === 'loading'
+            {sessionStatus === 'checking'
               ? '正在檢查登入…'
-              : status === 'error'
+              : sessionStatus === 'error'
                 ? '重新檢查'
                 : '登入家庭帳戶'}
           </button>
@@ -108,14 +113,31 @@ export function FoodJournal({
       ) : null}
 
       {error ? (
-        <p className="journal-access-error" role="alert">
-          {error}
-        </p>
+        <div className="journal-error-row">
+          <p className="journal-access-error" role="alert">
+            {error}
+          </p>
+          {isPrivate ? (
+            <button
+              className="journal-lock-button"
+              type="button"
+              onClick={() => void retry()}
+            >
+              重新載入
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {isPrivate ? <FamilyShortcutPanel /> : null}
 
-      {days.length ? (
+      {isPrivate && loading ? (
+        <section className="journal-empty" aria-live="polite">
+          <Clock3 size={26} aria-hidden="true" />
+          <h3>正在載入私人飲食紀錄</h3>
+          <p>只會讀取這個家庭帳戶自己的資料。</p>
+        </section>
+      ) : days.length ? (
         <div className="journal-days">
           {days.map((day) => (
             <section
@@ -177,7 +199,11 @@ export function FoodJournal({
                           <span className="meal-type">
                             {mealTypeLabels[entry.mealType]}
                           </span>
-                          <h3>{entry.foods.join('、')}</h3>
+                          <h3>
+                            {entry.foods.length
+                              ? entry.foods.join('、')
+                              : '未提供食物種類'}
+                          </h3>
                         </div>
                         <time
                           dateTime={entry.occurredAt ?? entry.recordedAt}
@@ -197,12 +223,18 @@ export function FoodJournal({
                       <dl className="journal-metadata">
                         <div>
                           <dt>食物種類</dt>
-                          <dd>{entry.foods.join(' · ')}</dd>
+                          <dd>
+                            {entry.foods.length
+                              ? entry.foods.join(' · ')
+                              : '尚未標示'}
+                          </dd>
                         </div>
                         <div>
                           <dt>烹調方式</dt>
                           <dd>
-                            {entry.cookingMethods?.join(' · ') ?? '尚未標示'}
+                            {entry.cookingMethods?.length
+                              ? entry.cookingMethods.join(' · ')
+                              : '尚未標示'}
                           </dd>
                         </div>
                       </dl>

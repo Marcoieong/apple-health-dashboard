@@ -127,6 +127,17 @@ function normalizeShortcutLocalDate(
     : value;
 }
 
+function normalizeShortcutStringList(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+
+  const items = value
+    .split(/[\n,，、]+/u)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return items.length ? items : undefined;
+}
+
 function fallbackClientRequestId(input: ShortcutMealInput): string {
   const hash = createHash('sha256');
   hash.update('shortcut-fallback-v1\0');
@@ -231,8 +242,14 @@ export function parseShortcutMealInput(
       receivedRecord.local_date,
       receivedRecord.timezone,
       options.fallbackDate
-    ) as string
-  };
+    ) as string,
+    food_labels: normalizeShortcutStringList(receivedRecord.food_labels) as
+      | string[]
+      | undefined,
+    preparation_methods: normalizeShortcutStringList(
+      receivedRecord.preparation_methods
+    ) as string[] | undefined
+  } satisfies ShortcutMealInput;
   const input: ShortcutMealInput = {
     ...normalizedInput,
     client_request_id: hasValidClientRequestId(

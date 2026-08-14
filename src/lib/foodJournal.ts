@@ -1,5 +1,6 @@
 import { addDays, formatDateZh } from './date';
 import type { FoodJournalEntry, MealType } from '../models/foodJournal';
+import { DEFAULT_TIME_ZONE, resolveTimeZone } from './timezone';
 
 export interface FoodJournalDay {
   date: string;
@@ -55,10 +56,19 @@ export function formatFoodJournalDate(date: string, today: string) {
 export function formatMealTime(entry: FoodJournalEntry): string | undefined {
   const timestamp = entry.occurredAt ?? entry.recordedAt;
   if (!timestamp) return undefined;
+
+  // Early iPhone Shortcut versions labelled the server write timestamp as
+  // UTC. Those records were created in Macau and should be presented in the
+  // user's local display timezone; new uploads already send Asia/Macau.
+  const timeZone =
+    entry.source === 'shortcut' && entry.timezone === 'UTC'
+      ? DEFAULT_TIME_ZONE
+      : resolveTimeZone(entry.timezone);
+
   return new Intl.DateTimeFormat('zh-Hant-MO', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-    timeZone: entry.timezone
+    timeZone
   }).format(new Date(timestamp));
 }

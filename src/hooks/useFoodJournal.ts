@@ -2,18 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createDemoMealEntries } from '../data/demoMealEntries';
 import type { FoodJournalEntry, MealType } from '../models/foodJournal';
 
-export type FamilyViewStatus =
-  | 'checking'
-  | 'signed-out'
-  | 'loading'
-  | 'authenticated'
-  | 'error';
-
-export interface FamilyMember {
-  email: string;
-  name?: string;
-  isAdmin: boolean;
-}
+export type FoodJournalStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 interface PrivateMealResponse {
   id: string;
@@ -66,6 +55,10 @@ function isPrivateMeal(value: unknown): value is PrivateMealResponse {
 }
 
 function toJournalEntry(meal: PrivateMealResponse): FoodJournalEntry {
+  const foodDescription = meal.foodLabels.length
+    ? meal.foodLabels.join('、')
+    : '未標示食物種類的';
+
   return {
     id: meal.id,
     localDate: meal.localDate,
@@ -80,7 +73,7 @@ function toJournalEntry(meal: PrivateMealResponse): FoodJournalEntry {
       ? {
           kind: 'authenticated-thumbnail',
           src: meal.thumbnail.url as `/api/${string}`,
-          alt: `${meal.localDate} ${meal.foodLabels.join('、')}餐食相片`,
+          alt: `${meal.localDate} ${foodDescription}餐食相片`,
           width: meal.thumbnail.width,
           height: meal.thumbnail.height
         }
@@ -92,19 +85,6 @@ function toJournalEntry(meal: PrivateMealResponse): FoodJournalEntry {
   };
 }
 
-function parseMember(value: unknown): FamilyMember | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const member = value as Record<string, unknown>;
-  if (typeof member.email !== 'string' || typeof member.isAdmin !== 'boolean') {
-    return undefined;
-  }
-  return {
-    email: member.email,
-    ...(typeof member.name === 'string' ? { name: member.name } : {}),
-    isAdmin: member.isAdmin
-  };
-}
-
 async function readJsonResponse(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('application/json')) {
@@ -113,99 +93,67 @@ async function readJsonResponse(response: Response): Promise<unknown> {
   return response.json() as Promise<unknown>;
 }
 
-export function useFoodJournal() {
+export function useFoodJournal(
+  enabled: boolean,
+  onUnauthorized?: () => Promise<void>
+) {
   const demoEntries = useMemo(() => createDemoMealEntries(), []);
   const [privateEntries, setPrivateEntries] = useState<FoodJournalEntry[]>([]);
-  const [member, setMember] = useState<FamilyMember>();
-  const [status, setStatus] = useState<FamilyViewStatus>('checking');
+  const [status, setStatus] = useState<FoodJournalStatus>('idle');
   const [error, setError] = useState<string>();
 
   const loadPrivateMeals = useCallback(async () => {
+    if (!enabled) return;
     setStatus('loading');
     setError(undefined);
-    const response = await fetch('/api/private/meals', {
-      method: 'GET',
-      cache: 'no-store',
-      credentials: 'same-origin'
-    });
-    if (response.status === 401) {
-      setMember(undefined);
-      setPrivateEntries([]);
-      setStatus('signed-out');
-      return;
-    }
-    if (!response.ok) throw new Error('暫時未能載入私人紀錄，請稍後再試。');
-    const body = await readJsonResponse(response);
-    const meals =
-      body && typeof body === 'object' && 'meals' in body
-        ? (body as { meals?: unknown }).meals
-        : undefined;
-    if (!Array.isArray(meals) || !meals.every(isPrivateMeal)) {
-      throw new Error('私人紀錄格式不正確，已停止載入。');
-    }
-    setPrivateEntries(meals.map(toJournalEntry));
-    setStatus('authenticated');
-  }, []);
 
-  const initialize = useCallback(async () => {
-    setStatus('checking');
-    setError(undefined);
     try {
-      const response = await fetch('/api/auth/session', {
+      const response = await fetch('/api/private/meals', {
+        method: 'GET',
         cache: 'no-store',
         credentials: 'same-origin'
       });
-      if (!response.ok) throw new Error('登入服務暫時不可用。');
-      const body = await readJsonResponse(response);
-      const authenticated =
-        body &&
-        typeof body === 'object' &&
-        (body as { authenticated?: unknown }).authenticated === true;
-      const nextMember = authenticated
-        ? parseMember((body as { member?: unknown }).member)
-        : undefined;
-      if (!nextMember) {
-        setMember(undefined);
+      if (response.status === 401) {
         setPrivateEntries([]);
-        setStatus('signed-out');
+        setStatus('idle');
+        await onUnauthorized?.();
         return;
       }
-      setMember(nextMember);
-      await loadPrivateMeals();
+      if (!response.ok) throw new Error('暫時未能載入私人紀錄，請稍後再試。');
+      const body = await readJsonResponse(response);
+      const meals =
+        body && typeof body === 'object' && 'meals' in body
+          ? (body as { meals?: unknown }).meals
+          : undefined;
+      if (!Array.isArray(meals) || !meals.every(isPrivateMeal)) {
+        throw new Error('私人紀錄格式不正確，已停止載入。');
+      }
+      setPrivateEntries(meals.map(toJournalEntry));
+      setStatus('ready');
     } catch (reason) {
       setPrivateEntries([]);
       setStatus('error');
-      setError(reason instanceof Error ? reason.message : '登入服務暫時不可用。');
+      setError(reason instanceof Error ? reason.message : '暫時未能載入私人紀錄。');
     }
-  }, [loadPrivateMeals]);
+  }, [enabled, onUnauthorized]);
 
   useEffect(() => {
-    void initialize();
-  }, [initialize]);
+    if (enabled) {
+      void loadPrivateMeals();
+      return;
+    }
 
-  const login = useCallback(() => {
-    window.location.assign('/api/auth/login?returnTo=%2F%3Fsection%3Dfood-journal');
-  }, []);
-
-  const logout = useCallback(() => {
-    void fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'same-origin'
-    }).finally(() => {
-      window.location.assign('/?section=food-journal');
-    });
-  }, []);
+    setPrivateEntries([]);
+    setStatus('idle');
+    setError(undefined);
+  }, [enabled, loadPrivateMeals]);
 
   return {
-    entries: status === 'authenticated' ? privateEntries : demoEntries,
+    entries: enabled ? privateEntries : demoEntries,
     isReadOnly: true as const,
-    mode: status === 'authenticated' ? ('private' as const) : ('demo' as const),
+    mode: enabled ? ('private' as const) : ('demo' as const),
     status,
-    member,
     error,
-    login,
-    logout,
-    retry: initialize,
     refresh: loadPrivateMeals
   };
 }

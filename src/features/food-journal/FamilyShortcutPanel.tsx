@@ -1,5 +1,6 @@
 import { Check, Copy, KeyRound, LoaderCircle, Smartphone, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { DEFAULT_TIME_ZONE } from '../../lib/timezone';
 
 interface CredentialSummary {
   id: string;
@@ -33,7 +34,8 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('zh-Hant-MO', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
+    timeZone: DEFAULT_TIME_ZONE
   }).format(new Date(value));
 }
 
