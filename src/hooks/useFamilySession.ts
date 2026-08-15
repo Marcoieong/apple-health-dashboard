@@ -12,6 +12,12 @@ export interface FamilyMember {
   isAdmin: boolean;
 }
 
+export type FamilyLoginDestination = 'food-journal' | 'family-board';
+
+function destinationUrl(destination: FamilyLoginDestination): string {
+  return `/?section=${destination}`;
+}
+
 function parseMember(value: unknown): FamilyMember | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const member = value as Record<string, unknown>;
@@ -78,16 +84,17 @@ export function useFamilySession() {
     void refresh();
   }, [refresh]);
 
-  const login = useCallback(() => {
-    window.location.assign('/api/auth/login?returnTo=%2F%3Fsection%3Dfood-journal');
+  const login = useCallback((destination: FamilyLoginDestination = 'food-journal') => {
+    const returnTo = encodeURIComponent(destinationUrl(destination));
+    window.location.assign(`/api/auth/login?returnTo=${returnTo}`);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback((destination: FamilyLoginDestination = 'food-journal') => {
     void fetch('/api/auth/logout', {
       method: 'POST',
       credentials: 'same-origin'
     }).finally(() => {
-      window.location.assign('/?section=food-journal');
+      window.location.assign(destinationUrl(destination));
     });
   }, []);
 

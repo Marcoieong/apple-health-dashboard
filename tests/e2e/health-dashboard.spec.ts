@@ -85,6 +85,79 @@ test('飲食日誌維持私人資料邊界', async ({ page }) => {
   await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
 });
 
+test('客廳家庭看板只顯示明確標示的虛構示範', async ({ page }) => {
+  await navigateTo(page, '家庭看板');
+
+  await expect(page.getByRole('heading', { name: '今日家庭節奏' })).toBeVisible();
+  await expect(page.getByText('目前顯示虛構示範家庭')).toBeVisible();
+  await expect(page.locator('.family-member-card')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: '登入家庭看板' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('private@example.com');
+});
+
+test('登入後家庭看板只呈現成員授權摘要', async ({ page }, testInfo) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'private-member@example.com', name: '私人名稱', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/family-board', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        schemaVersion: 1,
+        household: { id: 'household-safe-id', name: '測試家庭' },
+        generatedAt: '2030-01-02T13:00:00.000Z',
+        refreshAfterSeconds: 300,
+        members: [{
+          memberId: 'member-safe-id',
+          displayName: '家庭成員甲',
+          avatarLabel: '甲',
+          isCurrentUser: true,
+          asOfDate: '2030-01-02',
+          score: 84,
+          rating: 'Very Good',
+          weeklyDirection: 'up',
+          metrics: {
+            steps: { status: 'met', progressPercent: 110, label: '步數已達標' },
+            exercise: { status: 'close', progressPercent: 88, label: '尚差 4 分鐘' },
+            sleep: { status: 'met', progressPercent: 100, label: '睡眠達標' },
+          },
+          advice: '晚飯後輕鬆步行，保持今天的良好節奏。',
+          sharedScopes: ['score', 'activity_status', 'sleep_status', 'weekly_direction', 'advice'],
+        }],
+      }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/?section=family-board');
+
+  await expect(page.getByText('經成員授權的家庭摘要')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '家庭成員甲' })).toBeVisible();
+  await expect(page.getByLabel('健康評分 84 分')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('private-member@example.com');
+  await expect(page.locator('body')).not.toContainText('私人名稱');
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, 'iPad 橫向家庭看板不應橫向溢出').toBeLessThanOrEqual(0);
+  await page.screenshot({
+    path: testInfo.outputPath('ipad-landscape-family-board.png'),
+    fullPage: true,
+  });
+});
+
 test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({ page }) => {
   await page.unroute('**/api/auth/session');
   await page.route('**/api/auth/session', async (route) => {
@@ -259,6 +332,7 @@ test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({
     { name: 'iphone-15-pro', width: 393, height: 852 },
     { name: 'iphone-pro-max', width: 430, height: 932 },
     { name: 'ipad', width: 768, height: 1024 },
+    { name: 'ipad-landscape', width: 1024, height: 768 },
     { name: 'desktop-1366', width: 1366, height: 768 },
     { name: 'desktop-1920', width: 1920, height: 1080 },
   ];
@@ -273,7 +347,7 @@ test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({
 
   await page.setViewportSize({ width: 393, height: 852 });
   await expect(page.getByLabel(/今日健康總分/)).toBeVisible();
-  await expect(page.locator('.bottom-nav button')).toHaveCount(4);
+  await expect(page.locator('.bottom-nav button')).toHaveCount(5);
   await page.screenshot({
     path: testInfo.outputPath('iphone-15-pro-today-light.png'),
     fullPage: true,

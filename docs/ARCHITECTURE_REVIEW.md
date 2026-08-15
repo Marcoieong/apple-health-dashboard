@@ -52,6 +52,8 @@ flowchart TB
 4. **Shortcut 輸入兼容**：食物及做法可接受清單、逗號、全形逗號、頓號或換行；空白可選欄位不再造成無意義錯誤。
 5. **空值介面清楚**：沒有食物或做法標籤時顯示「尚未標示」，不再留下空標題。
 6. **頁面按需載入**：今日、週、月及飲食功能分為獨立 browser chunks；只載入目前頁面需要的 UI 和私人資料，控制 iPhone 首次下載量。
+7. **多裝置家庭顯示基礎**：新增客廳 iPad 唯讀看板、版本化 `family-board` contract、虛構示範與 fail-closed 設定狀態；手機、iPad、電腦沿用同一身份及資料核心。
+8. **摘要與原始資料分流**：家庭看板合約拒絕電郵、體重、餐食、相片及備註等私人欄位，為日後 sharing grant 建立最少披露邊界。
 
 ## 主要風險與優先次序
 
@@ -74,9 +76,9 @@ data_sharing_grants
 
 健康、餐食及相片仍保留 `owner_id`。Membership 只證明「屬於同一家庭」，**不代表可以查看彼此健康資料**；跨成員讀取必須有獨立、可撤銷的 sharing grant。
 
-### P1：前後端資料 contract 仍有重複
+### P1：其餘前後端資料 contract 仍有重複
 
-部分 response type 及驗證規則在瀏覽器 hook 與 server 各自維護。功能增加後容易發生欄位漂移。建議下一階段建立無秘密、無 Node 依賴的 `shared/contracts`，以 Zod schema 同時產生 TypeScript 型別及 runtime validation，並為私人 API 加明確版本（例如 `/api/v1` 或 response `schemaVersion`）。
+家庭看板已先採用無秘密、無 Node 依賴的嚴格 Zod contract 與 `schemaVersion`。其餘 response type 及驗證規則仍有部分在瀏覽器 hook 與 server 各自維護，功能增加後可能發生欄位漂移；舊功能應在修改時逐步遷移，不需要一次大搬動。
 
 ### P2：server 路由會隨功能增長而過大
 
@@ -109,8 +111,8 @@ server/domains/<domain>/
 ## 建議演進順序
 
 1. **已完成**：抽出獨立 family session、修正澳門時間及 Shortcut metadata 邊界。
-2. **下一個小階段**：建立 shared contracts、API schema version、contract tests；不改現有資料內容。
-3. 加入 households／memberships schema、邀請狀態及跨帳戶負面測試；仍不開放共享健康資料。
+2. **已完成基礎**：家庭看板 shared contract、schema version、contract tests 及 iPad 響應式骨架；不改現有私人資料內容。
+3. **下一個小階段**：加入 households／memberships／sharing grants schema、邀請狀態及跨帳戶負面測試；共享預設關閉。
 4. 為 HealthBridge 加可靠的手動同步 receipt、最近同步狀態及可恢復重試，再測背景同步。
 5. 先做 opt-in 家庭摘要，再按 data scope 加可撤銷共享；永不以家庭 membership 自動開放全部資料。
 

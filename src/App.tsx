@@ -4,13 +4,20 @@ import { EmptyState } from './components/EmptyState';
 import { HealthSyncStatus } from './components/HealthSyncStatus';
 import { useFamilySession } from './hooks/useFamilySession';
 import { useFoodJournal } from './hooks/useFoodJournal';
+import { useFamilyBoard } from './hooks/useFamilyBoard';
 import { useHealthRecords } from './hooks/useHealthRecords';
 import { usePrivateHealth } from './hooks/usePrivateHealth';
 import { todayKey } from './lib/date';
 import { calculateWeeklySummary } from './lib/summaries';
 
 const THEME_KEY = 'personal-health-dashboard:theme';
-const APP_VIEWS = new Set<AppView>(['today', 'weekly', 'monthly', 'food-journal']);
+const APP_VIEWS = new Set<AppView>([
+  'today',
+  'weekly',
+  'monthly',
+  'food-journal',
+  'family-board'
+]);
 
 const DailyDashboard = lazy(() =>
   import('./features/daily-dashboard/DailyDashboard').then((module) => ({
@@ -20,6 +27,11 @@ const DailyDashboard = lazy(() =>
 const FoodJournal = lazy(() =>
   import('./features/food-journal/FoodJournal').then((module) => ({
     default: module.FoodJournal
+  }))
+);
+const FamilyBoard = lazy(() =>
+  import('./features/family-board/FamilyBoard').then((module) => ({
+    default: module.FamilyBoard
   }))
 );
 const MonthlyProgress = lazy(() =>
@@ -46,12 +58,16 @@ export default function App() {
   const familySession = useFamilySession();
   const isFamilyMember = familySession.status === 'authenticated';
   const isFoodJournalView = view === 'food-journal';
+  const isFamilyBoardView = view === 'family-board';
   const foodJournal = useFoodJournal(
     isFamilyMember && isFoodJournalView,
     familySession.refresh
   );
   const { entries: foodJournalEntries } = foodJournal;
-  const privateHealth = usePrivateHealth(isFamilyMember && !isFoodJournalView);
+  const familyBoard = useFamilyBoard(isFamilyMember && isFamilyBoardView);
+  const privateHealth = usePrivateHealth(
+    isFamilyMember && !isFoodJournalView && !isFamilyBoardView
+  );
   const activeRecords = isFamilyMember ? privateHealth.records : records;
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY);
@@ -80,7 +96,22 @@ export default function App() {
   };
 
   let content;
-  if (view === 'food-journal') {
+  if (view === 'family-board') {
+    content = (
+      <FamilyBoard
+        sessionStatus={familySession.status}
+        status={familyBoard.status}
+        data={familyBoard.data}
+        error={familySession.error ?? familyBoard.error}
+        onLogin={() => familySession.login('family-board')}
+        onRefresh={
+          familySession.status === 'error'
+            ? familySession.refresh
+            : familyBoard.refresh
+        }
+      />
+    );
+  } else if (view === 'food-journal') {
     content = (
       <FoodJournal
         entries={foodJournal.entries}
@@ -137,7 +168,7 @@ export default function App() {
       onNavigate={navigate}
       onToggleTheme={() => setDarkMode((current) => !current)}
     >
-      {view !== 'food-journal' && isFamilyMember ? (
+      {view !== 'food-journal' && view !== 'family-board' && isFamilyMember ? (
         <div className="page-stack">
           <HealthSyncStatus
             status={privateHealth.status}
