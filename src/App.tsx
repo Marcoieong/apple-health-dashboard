@@ -5,6 +5,7 @@ import { HealthSyncStatus } from './components/HealthSyncStatus';
 import { useFamilySession } from './hooks/useFamilySession';
 import { useFoodJournal } from './hooks/useFoodJournal';
 import { useFamilyBoard } from './hooks/useFamilyBoard';
+import { useHousehold } from './hooks/useHousehold';
 import { useHealthRecords } from './hooks/useHealthRecords';
 import { usePrivateHealth } from './hooks/usePrivateHealth';
 import { todayKey } from './lib/date';
@@ -65,6 +66,7 @@ export default function App() {
   );
   const { entries: foodJournalEntries } = foodJournal;
   const familyBoard = useFamilyBoard(isFamilyMember && isFamilyBoardView);
+  const household = useHousehold(isFamilyMember && isFamilyBoardView);
   const privateHealth = usePrivateHealth(
     isFamilyMember && !isFoodJournalView && !isFamilyBoardView
   );
@@ -102,13 +104,23 @@ export default function App() {
         sessionStatus={familySession.status}
         status={familyBoard.status}
         data={familyBoard.data}
-        error={familySession.error ?? familyBoard.error}
+        error={familyBoard.error}
+        member={familySession.member}
+        householdStatus={household.status}
+        householdData={household.data}
+        householdError={familySession.error ?? household.error}
+        pendingInvitation={household.pendingInvitation}
         onLogin={() => familySession.login('family-board')}
         onRefresh={
           familySession.status === 'error'
             ? familySession.refresh
-            : familyBoard.refresh
+            : () => void Promise.all([familyBoard.refresh(), household.refresh()])
         }
+        onCreateHousehold={household.createHousehold}
+        onCreateInvitation={household.createInvitation}
+        onRevokeInvitation={household.revokeInvitation}
+        onAcceptInvitation={household.acceptInvitation}
+        onUpdateSharing={household.updateSharing}
       />
     );
   } else if (view === 'food-journal') {

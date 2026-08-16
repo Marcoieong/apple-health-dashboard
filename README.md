@@ -16,7 +16,7 @@
 - 成員資料隔離：每個帳戶使用獨立擁有人 ID 與 PostgreSQL RLS；家庭管理員不會預設看到其他成員資料
 - iPhone Shortcut 導入：每位成員可建立及撤銷自己的 Bearer 金鑰；Base64 圖片會清除 EXIF/GPS、重試去重並存入私人儲存
 - 私人唯讀日誌：登入後只讀取該成員自己的餐食摘要與短效受保護縮圖
-- 家庭看板基礎：同一平台支援手機個人模式、客廳 iPad 唯讀看板及電腦管理模式；只接受成員明確授權的最少化摘要
+- 家庭看板：可建立 household、產生／撤銷邀請、加入家庭及逐成員開關五類摘要；預設全部關閉，只接受明確授權的最少化資料
 - HealthKit 同步：日級聚合後端、每裝置憑證、PostgreSQL RLS 及原生 iPhone HealthBridge；現階段以手動同步為可靠邊界，背景頻率尚未承諾
 - ChatGPT 唯讀健康工具（開發分支）：OAuth `health.read` 可讀取日級摘要與同步狀態；按需讀取已保存資料，尚未更新正式 Connector
 - 手機優先：iPhone Safe Area、底部導覽、大觸控區、深色模式
@@ -79,7 +79,7 @@ pnpm exec playwright install chromium
 3. 選「加入主畫面」。
 4. 從主畫面開啟即可使用 standalone 顯示。
 
-網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」、「飲食日誌」和「家庭看板」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。家庭成員登入及邀請方式見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md)；手機餐食建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。客廳 iPad 的顯示與私隱邊界見 [家庭多裝置顯示架構](docs/FAMILY_DISPLAY_ARCHITECTURE.md)。
+網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」、「飲食日誌」和「家庭看板」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。在「家庭看板」登入後，可建立家庭、接受邀請及管理分享範圍。家庭成員登入及邀請方式見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md)；手機餐食建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。客廳 iPad 的顯示與私隱邊界見 [家庭多裝置顯示架構](docs/FAMILY_DISPLAY_ARCHITECTURE.md)。
 
 ## 資料儲存與導入邊界
 
@@ -106,8 +106,8 @@ pnpm exec playwright install chromium
 - 未登入時健康指標仍是 Demo Data；登入後才可讀取該成員已同步的私人摘要
 - 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
 - Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
-- 家庭邀請目前由部署 allowlist 管理，尚未提供管理員自助邀請頁
-- 家庭看板目前已完成介面、嚴格資料 contract 及 iPad 響應式基礎；真實跨成員摘要仍未接上 household／sharing grant 後端
+- 家庭登入仍受部署 allowlist 保護；管理員可在已登入介面建立 household 邀請，但新成員電郵仍須先在 Auth0 allowlist 內
+- household、membership、邀請及逐項 sharing grant 後端已完成；正式開放前仍須以兩個真實 Auth0 帳戶完成一次可見／不可見驗收
 - 各成員可撤銷自己的 iPhone 金鑰，但餐食自助刪除及家庭資料匯出仍未完成
 - ChatGPT 唯讀健康工具只按需讀取已同步資料；不能觸發 HealthKit 或充當排程器
 - 沒有定時 AI 自動分析；ChatGPT 只在對話中獲授權呼叫時按需解讀
@@ -116,4 +116,4 @@ pnpm exec playwright install chromium
 
 ## 下一個小階段
 
-加入 `households`／`household_memberships`／`data_sharing_grants` 後端骨架與跨帳戶負面測試，讓每位成員逐項授權家庭摘要；預設全部關閉，不會因加入家庭而自動分享。實施次序見 [APP 架構審查](docs/ARCHITECTURE_REVIEW.md)，HealthKit 路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。
+在預覽環境套用家庭資料庫 migration，並用兩個真實 Auth0 帳戶完成邀請、授權、撤銷及跨帳戶不可見驗收；通過後才建立可撤銷的客廳 iPad 專用顯示 session。實施次序見 [APP 架構審查](docs/ARCHITECTURE_REVIEW.md)，HealthKit 路線見 [Apple Health 整合計劃](docs/APPLE_HEALTH_INTEGRATION_PLAN.md)。

@@ -39,7 +39,7 @@ Membership 只表示某人屬於家庭，不等於可以查看其資料。只有
 
 合約刻意不包含電郵、體重、體脂、腰圍、照片、餐食細節、備註、owner ID、裝置 ID 或憑證。未知欄位會被拒絕，避免後端日後新增私人欄位時意外顯示在客廳。
 
-目前前端已具備：嚴格 contract、虛構示範、未配置後端時的 fail-closed 狀態、iPad 橫向／直向佈局及只在頁面可見時重新讀取。真正的跨成員摘要仍須下一階段完成 household、membership 及 sharing grant 後端；現階段不會把個人資料自動分享。
+目前已具備：嚴格 contract、虛構示範、未配置後端時的 fail-closed 狀態、iPad 橫向／直向佈局、household／membership／邀請／sharing grant 後端，以及只在頁面可見時重新讀取。分享預設全部關閉；後端先驗證同一 household 及授權 scope，才查詢及產生最少化摘要。
 
 ## 更新與資料新鮮度
 
@@ -55,11 +55,11 @@ Membership 只表示某人屬於家庭，不等於可以查看其資料。只有
 - iPad 遺失、搬離家中或家庭成員退出時，應可從電腦撤銷該顯示 session。
 - 避免把螢幕放在窗外或訪客可直接看見的位置；即使是摘要亦屬健康相關資訊。
 
-## 下一階段後端完成條件
+## 完成狀態與下一個驗收
 
-1. 建立 `households`、`household_memberships`、`data_sharing_grants` 與共用顯示 session。
-2. 每位成員可逐項開啟、查看及撤銷分享，預設全部關閉。
-3. `/api/private/family-board` 只以後端授權查詢產生最少化摘要。
-4. 跨帳戶、已撤銷、已退出家庭及過期 session 的負面測試全部通過。
-5. 客廳 iPad 顯示資料日期、最近同步及過期狀態，不暗示即時監測。
-6. ChatGPT 仍遵守同一 owner／scope 授權，不因家庭看板開啟而取得更多資料。
+1. 已建立 `households`、`household_memberships`、邀請及 `data_sharing_grants`；共用 iPad 專用顯示 session 尚未建立。
+2. 已支援逐項開啟及撤銷分享，預設全部關閉。
+3. `/api/private/family-board` 先做同家庭／scope 授權，再查詢私人日級資料並產生最少化摘要。
+4. 純函數及合約測試已覆蓋不同家庭、無授權及撤銷後不可見；仍須用兩個真實 Auth0 帳戶做端到端交叉測試。
+5. 客廳 iPad 顯示資料日期及等待同步狀態，不暗示即時監測。
+6. ChatGPT 仍遵守自己的 owner／`health.read` 授權，不因家庭看板開啟而取得其他成員資料。

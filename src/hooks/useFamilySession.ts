@@ -15,7 +15,10 @@ export interface FamilyMember {
 export type FamilyLoginDestination = 'food-journal' | 'family-board';
 
 function destinationUrl(destination: FamilyLoginDestination): string {
-  return `/?section=${destination}`;
+  const params = new URLSearchParams({ section: destination });
+  const invitation = new URLSearchParams(window.location.search).get('invite');
+  if (destination === 'family-board' && invitation) params.set('invite', invitation);
+  return `/?${params.toString()}`;
 }
 
 function parseMember(value: unknown): FamilyMember | undefined {

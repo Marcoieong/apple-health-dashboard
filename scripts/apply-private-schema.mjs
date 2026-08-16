@@ -42,6 +42,13 @@ const migrations = [
       '../server/health-sync/migrations/health-sync-v1.sql',
       import.meta.url
     )
+  },
+  {
+    version: 'family-sharing-v1',
+    url: new URL(
+      '../server/family-sharing/migrations/family-sharing-v1.sql',
+      import.meta.url
+    )
   }
 ];
 

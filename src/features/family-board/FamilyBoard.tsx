@@ -10,20 +10,33 @@ import {
   UsersRound
 } from 'lucide-react';
 import { createDemoFamilyBoard } from '../../data/demoFamilyBoard';
-import type { FamilySessionStatus } from '../../hooks/useFamilySession';
+import type { FamilyMember, FamilySessionStatus } from '../../hooks/useFamilySession';
 import type { FamilyBoardStatus } from '../../hooks/useFamilyBoard';
+import type { HouseholdStatus } from '../../hooks/useHousehold';
+import type { HouseholdSharingScope, HouseholdSnapshot } from '../../contracts/household';
 import type {
   FamilyBoardMember,
   FamilyBoardResponse
 } from '../../contracts/familyBoard';
+import { HouseholdSettings } from './HouseholdSettings';
 
 interface FamilyBoardProps {
   sessionStatus: FamilySessionStatus;
   status: FamilyBoardStatus;
   data?: FamilyBoardResponse;
   error?: string;
+  member?: FamilyMember;
+  householdStatus: HouseholdStatus;
+  householdData?: HouseholdSnapshot;
+  householdError?: string;
+  pendingInvitation: boolean;
   onLogin: () => void;
   onRefresh: () => void;
+  onCreateHousehold: (name: string) => Promise<void>;
+  onCreateInvitation: (email: string) => Promise<{ invitationId: string; token: string; expiresAt: string }>;
+  onRevokeInvitation: (invitationId: string) => Promise<void>;
+  onAcceptInvitation: () => Promise<void>;
+  onUpdateSharing: (viewerMemberId: string, scopes: HouseholdSharingScope[]) => Promise<void>;
 }
 
 const statusLabels = {
@@ -71,7 +84,24 @@ function MemberCard({ member }: { member: FamilyBoardMember }) {
   );
 }
 
-export function FamilyBoard({ sessionStatus, status, data, error, onLogin, onRefresh }: FamilyBoardProps) {
+export function FamilyBoard({
+  sessionStatus,
+  status,
+  data,
+  error,
+  member,
+  householdStatus,
+  householdData,
+  householdError,
+  pendingInvitation,
+  onLogin,
+  onRefresh,
+  onCreateHousehold,
+  onCreateInvitation,
+  onRevokeInvitation,
+  onAcceptInvitation,
+  onUpdateSharing
+}: FamilyBoardProps) {
   const isDemo = sessionStatus !== 'authenticated';
   const board = isDemo ? createDemoFamilyBoard() : data;
 
@@ -101,6 +131,21 @@ export function FamilyBoard({ sessionStatus, status, data, error, onLogin, onRef
         </div>
       </div>
 
+      <HouseholdSettings
+        sessionStatus={sessionStatus}
+        member={member}
+        status={householdStatus}
+        data={householdData}
+        error={householdError}
+        pendingInvitation={pendingInvitation}
+        onLogin={onLogin}
+        onCreateHousehold={onCreateHousehold}
+        onCreateInvitation={onCreateInvitation}
+        onRevokeInvitation={onRevokeInvitation}
+        onAcceptInvitation={onAcceptInvitation}
+        onUpdateSharing={onUpdateSharing}
+      />
+
       {sessionStatus === 'checking' || (sessionStatus === 'authenticated' && (status === 'idle' || status === 'loading') && !board) ? (
         <div className="board-state" role="status"><RefreshCw className="sync-spinner" /><h3>正在準備家庭看板…</h3></div>
       ) : null}
@@ -108,8 +153,8 @@ export function FamilyBoard({ sessionStatus, status, data, error, onLogin, onRef
       {sessionStatus === 'authenticated' && status === 'setup-required' ? (
         <div className="board-state">
           <LockKeyhole className="empty-icon" />
-          <h3>家庭看板基礎已就緒</h3>
-          <p>目前尚未建立成員分享授權，因此不會顯示任何私人健康資料。下一階段可由每位家人在手機選擇分享範圍。</p>
+          <h3>{householdData ? '等待成員分享摘要' : '先完成家庭設定'}</h3>
+          <p>{householdData ? '目前沒有其他成員向你開啟摘要。每位家人可在上方逐項選擇分享範圍。' : '請在上方建立家庭，或使用家人傳來的邀請連結加入。'}</p>
         </div>
       ) : null}
 
