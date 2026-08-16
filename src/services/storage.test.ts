@@ -33,14 +33,14 @@ describe('本機儲存及交換服務', () => {
 
   it('可新增、讀取、更新及刪除紀錄', () => {
     const saved = saveRecord(validInput);
-    expect(loadRecords(false)).toHaveLength(1);
+    expect(loadRecords()).toHaveLength(1);
     expect(saved.source).toBe('manual');
 
     updateRecord(saved.id, { ...validInput, steps: 10_100 });
-    expect(loadRecords(false)[0].steps).toBe(10_100);
+    expect(loadRecords()[0].steps).toBe(10_100);
 
     deleteRecord(saved.id);
-    expect(loadRecords(false)).toEqual([]);
+    expect(loadRecords()).toEqual([]);
   });
 
   it('拒絕同日重複新增', () => {
@@ -48,7 +48,7 @@ describe('本機儲存及交換服務', () => {
     expect(() => saveRecord(validInput)).toThrow('該日期已有紀錄');
   });
 
-  it('清除後保持空白，不會重新載入 Demo', () => {
+  it('沒有資料時保持空白，不會自動載入示範紀錄', () => {
     loadRecords();
     clearAllRecords();
     expect(loadRecords()).toEqual([]);
@@ -56,14 +56,14 @@ describe('本機儲存及交換服務', () => {
 
   it('拒絕損壞資料並提供可理解錯誤', () => {
     localStorage.setItem(STORAGE_KEY, '{broken-json');
-    expect(() => loadRecords(false)).toThrow('無法讀取本機健康資料');
+    expect(() => loadRecords()).toThrow('無法讀取本機健康資料');
   });
 
   it('匯入有效 JSON 並標記為 imported', () => {
     const result = importRecords(JSON.stringify({ records: [validInput] }));
     expect(result.importedCount).toBe(1);
     expect(result.errors).toEqual([]);
-    expect(loadRecords(false)[0].source).toBe('imported');
+    expect(loadRecords()[0].source).toBe('imported');
   });
 
   it('匯入錯誤資料時不覆寫現有紀錄', () => {
@@ -71,7 +71,7 @@ describe('本機儲存及交換服務', () => {
     const result = importRecords(JSON.stringify({ records: [{ date: 'wrong', steps: -1 }] }));
     expect(result.importedCount).toBe(0);
     expect(result.errors[0]).toContain('日期格式無效');
-    expect(loadRecords(false)).toHaveLength(1);
+    expect(loadRecords()).toHaveLength(1);
   });
 
   it('匯入同日重複資料時保留第一筆並回報略過', () => {
@@ -91,8 +91,8 @@ describe('本機儲存及交換服務', () => {
     }));
     expect(result.importedCount).toBe(1);
     expect(result.skippedCount).toBe(1);
-    expect(loadRecords(false)).toHaveLength(2);
-    expect(loadRecords(false).find((record) => record.date === validInput.date)?.steps).toBe(9_200);
+    expect(loadRecords()).toHaveLength(2);
+    expect(loadRecords().find((record) => record.date === validInput.date)?.steps).toBe(9_200);
   });
 
   it('CSV 正確處理逗號和引號', () => {

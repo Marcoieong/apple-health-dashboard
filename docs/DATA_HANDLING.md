@@ -2,7 +2,7 @@
 
 ## 本機健康紀錄
 
-公開 Dashboard 採唯讀模式，不提供新增、編輯、刪除、清除、上傳或檔案匯入。獨立 storage service 與 schema migration 仍保留，供日後受保護的私人整合使用；React 元件不直接管理儲存格式。首次開啟會建立 14 日虛構 Demo Data。
+公開 Dashboard 採唯讀模式，不提供新增、編輯、刪除、清除、上傳或檔案匯入。未登入時不建立或載入健康紀錄。獨立 storage service 與 schema migration 只保留作舊格式相容及內部測試；生產 React 畫面不以 `localStorage` 作健康資料來源。
 
 ## 私人 iPhone Shortcut 餐食流程
 
@@ -16,7 +16,7 @@
 
 ## 私人 Apple Health 日級同步（第二階段）
 
-目前分支已建立後端 contract，但尚未部署或連接真機。預定資料流是：獲使用者逐類型授權的 iOS Companion App 在裝置內將 HealthKit 資料彙總成每日數字，再以每成員、每裝置的可撤銷 Bearer 憑證傳送至 `/api/health-sync/v1/days`。
+目前架構已建立後端 contract 及 iOS HealthBridge 資料管道：獲使用者逐類型授權的 iPhone App 在裝置內將 HealthKit 資料彙總成每日數字，再以每成員、每裝置的可撤銷 Bearer 憑證傳送至 `/api/health-sync/v1/days`。Dashboard 只在登入後讀取已成功保存的日級資料；沒有保存資料時顯示空狀態。
 
 第一版只接受：
 
@@ -31,7 +31,7 @@
 
 不收集原始 HealthKit samples、sample UUID、逐分鐘時間線、來源 App 名稱、裝置序號、廣告識別碼或未列入 contract 的健康資料。資料庫以 Auth0 衍生的不透明 owner ID 分隔成員，四張健康同步資料表均強制 RLS。同步 token 只應保存於 iOS Keychain；伺服器只保存 token hash，日誌只記錄追蹤 ID、雜湊裝置識別、日數、狀態及耗時，不記錄健康數值。
 
-相同 `sync_id` 與相同 payload digest 的重試會回傳原有結果；相同 `sync_id` 配上不同內容會拒絕並回傳衝突。這項設計只證明預期行為，仍須經 Preview migration、真實 iPhone 請求及資料庫保存收據才可稱為已接通。
+相同 `sync_id` 與相同 payload digest 的重試會回傳原有結果；相同 `sync_id` 配上不同內容會拒絕並回傳衝突。每個環境仍須以真實 iPhone 請求、API 收據及資料庫保存結果核對，才可稱為該環境已接通；前端不會用測試資料掩蓋未接通狀態。
 
 ## ChatGPT 私人唯讀健康流程
 
@@ -59,7 +59,7 @@ Marco 過渡期的 `CHATGPT_MCP_OWNER_ID` 必須與家庭登入的 legacy owner 
 
 ## 公開網站限制
 
-`health.pui-pui.org` 由公開 Vercel 部署提供介面。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此只可包含虛構 Demo Data。真實個人健康資料、存取碼及 Vercel 秘密不可提交至公開 repository 或發布分支。
+`health.pui-pui.org` 由公開 Vercel 部署提供介面。任何隨網站發布的 JSON 或 JavaScript 都可被訪客下載，因此不得包含真實個人健康資料、存取碼或 Vercel 秘密。真實資料只可經已認證的私人 API 回傳，且不得提交至 Git repository 或前端 bundle。
 
 家庭網站使用每人獨立 Auth0 身份、穩定不透明 owner ID 與 PostgreSQL RLS。Shortcut 使用每人獨立且可撤銷的 Bearer 金鑰，不應放在網址參數。私人 API 回應使用 `private, no-store`，service worker 明確不快取 `/api/`。管理員只控制邀請 allowlist，不會預設擁有跨成員讀取權限。
 
@@ -67,4 +67,4 @@ Marco 過渡期的 `CHATGPT_MCP_OWNER_ID` 必須與家庭登入的 legacy owner 
 
 - 欄位可留空；摘要與畫面以「—」表示缺失，不把缺失數值當成零。
 - 評分只對已提供的評分類別計分，並列出缺失欄位。
-- Demo Data 必須在介面明確標示，不得表示為真實 Apple Health 紀錄。
+- 沒有已認證的私人紀錄時必須顯示鎖定或空狀態，不得以測試資料替代。

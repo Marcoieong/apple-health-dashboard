@@ -149,7 +149,7 @@ Vercel 部署提供 `/mcp`、protected-resource metadata 及只揭露布林 read
 3. **私人服務 adapters**：PostgreSQL transaction、私人 object storage、
    圖片 codec、SSRF-safe downloader及正式 OAuth 身份服務配置。
 4. **唯讀接駁**：`meal.read` API、BFF session、縮圖 media route，將前端
-   demo data adapter 換成認證 API adapter。
+   將測試資料 adapter 與認證 API adapter 完全分開，生產畫面只使用後者。
 5. **Staging 驗收**：MCP Inspector contract test、權限及重試測試、iPhone
    ChatGPT 實機傳相片、網站跨日／餐別展示。
 6. **Production**：設定 retention lifecycle、備份／刪除流程、監察失敗率，

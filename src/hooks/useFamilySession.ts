@@ -12,7 +12,12 @@ export interface FamilyMember {
   isAdmin: boolean;
 }
 
-export type FamilyLoginDestination = 'food-journal' | 'family-board';
+export type FamilyLoginDestination =
+  | 'today'
+  | 'weekly'
+  | 'monthly'
+  | 'food-journal'
+  | 'family-board';
 
 function destinationUrl(destination: FamilyLoginDestination): string {
   const params = new URLSearchParams({ section: destination });

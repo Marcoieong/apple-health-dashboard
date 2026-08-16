@@ -2,7 +2,7 @@
 
 ## 邊界
 
-第一階段沒有連接 Apple Health，也沒有即時或背景同步。公開 Dashboard 採唯讀模式，只展示 Demo Data；私人 ChatGPT 導入與 Apple Health 真機資料管道均尚未部署。
+歷史第一階段沒有連接 Apple Health。現時公開 Dashboard 仍採唯讀模式，但未登入時保持鎖定；登入後只讀取 iPhone HealthBridge 已成功保存的日級聚合。前端不直接連接 HealthKit，也不以測試資料代替未同步狀態；即時或固定頻率背景同步仍不作承諾。
 
 ## 實作狀態（2026-08-05）
 
@@ -12,7 +12,7 @@
 - 每成員、每裝置的可撤銷同步憑證；
 - PostgreSQL schema、強制 RLS、冪等請求紀錄及裝置 cursor；
 - 寫入、私人健康資料讀取、同步狀態及裝置管理 API；
-- 登入後 Dashboard 只顯示該成員私人健康紀錄，且不與 Demo Data 混合；
+- 登入後 Dashboard 只顯示該成員私人健康紀錄；未登入或未同步時不顯示測試健康數字；
 - ChatGPT OAuth `health.read` 的唯讀日級摘要及同步狀態工具，不回傳裝置識別；
 - 部分欄位更新、較新 HealthKit 修正值及重試去重規則的單元測試。
 

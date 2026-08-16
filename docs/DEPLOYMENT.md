@@ -27,7 +27,7 @@ pnpm privacy:scan
 
 先用 preview URL 在 iPhone 實機確認，再把已驗證版本 promote 至 production。`vercel.json` 已把 `/mcp` 與 OAuth metadata 導向 Vercel Functions，並對所有私人路徑設定 `Cache-Control: private, no-store`。
 
-目前公開版本只包含虛構 Demo Data。真實個人健康資料不得加入公開部署；需先建立認證與私人資料層。
+未登入的公開版本只顯示私人資料鎖定狀態，不包含健康數字。真實個人健康資料只可由認證及私人資料層按使用者範圍提供，不得加入前端 bundle。
 
 ## Cloudflare Pages（後備）
 
@@ -96,10 +96,10 @@ ChatGPT Preview 優先使用獨立的 `CHATGPT_MCP_OWNER_ID`；若沒有設定�
 - `manifest.webmanifest` 與 service worker 可載入
 - iPhone 393×852 及 430×932 無橫向溢出
 - 主畫面 standalone 開啟
-- 四個導覽頁為「今日／每週／每月／飲食日誌」
+- 五個導覽頁為「今日／每週／每月／飲食日誌／家庭看板」
 - 公開介面沒有新增、編輯、刪除、匯入、匯出或上傳控制
-- 重整後 Demo Data 仍可正常載入
-- 清楚顯示「Demo Data · 非真實資料」
+- 未登入及重整後仍保持鎖定，不出現健康數字或測試資料
+- 登入後只顯示該帳戶私人 API 已保存的紀錄；未同步時顯示空狀態
 - 沒有 analytics、廣告或真實健康資料進入 Git
 - `/api/`、`/mcp` 及 `/.well-known/` 不被 PWA navigation fallback 或 runtime cache 接管
 - Health sync Preview 已通過未授權、跨成員、跨裝置、重試及修正值負面測試

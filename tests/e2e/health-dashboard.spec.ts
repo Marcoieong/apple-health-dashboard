@@ -2,12 +2,67 @@ import { expect, test, type Page } from '@playwright/test';
 
 const themeKey = 'personal-health-dashboard:theme';
 const storageKey = 'personal-health-dashboard.records';
+const privateHealthDays = Array.from({ length: 30 }, (_, index) => {
+  const day = String(index + 1).padStart(2, '0');
+  return {
+    local_date: `2030-01-${day}`,
+    timezone: 'Asia/Macau',
+    source_updated_at: `2030-01-${day}T13:00:00.000Z`,
+    steps: 9_000 + index * 125,
+    active_energy_kcal: 500 + index * 4,
+    exercise_minutes: 30 + (index % 16),
+    sleep_hours: 7 + (index % 4) * 0.25,
+    weight_kg: 98 - index * 0.04,
+    body_fat_percent: 32 - index * 0.02,
+  };
+});
 
 async function navigateTo(page: Page, label: string) {
   await page
     .locator('.side-nav button:visible, .bottom-nav button:visible')
     .filter({ hasText: label })
     .click();
+}
+
+async function mockAuthenticatedHealth(page: Page) {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/health', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
+        days: privateHealthDays,
+      }),
+    });
+  });
+  await page.route('**/api/private/health/sync-status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        devices: [{
+          deviceInstallationId: 'private-device-id-must-not-render',
+          lastCollectedAt: '2030-01-02T12:55:00.000Z',
+          lastSyncAt: '2030-01-02T13:00:00.000Z',
+        }],
+      }),
+    });
+  });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -23,25 +78,25 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('公開 Dashboard 為唯讀，不顯示人工輸入控制', async ({ page }) => {
-  await expect(page.getByText('Demo Data · 非真實資料')).toBeVisible();
-  await expect(page.getByText('唯讀 Dashboard')).toBeVisible();
-  await expect(page.getByText('不提供網頁人工輸入')).toBeVisible();
+test('未登入 Dashboard 鎖定私人資料且不顯示人工輸入控制', async ({ page }) => {
+  await expect(page.getByText('私人資料 · 已鎖定')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '登入家庭帳戶' })).toBeVisible();
   await expect(page.getByRole('button', { name: '輸入' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /編輯|新增|儲存|匯入|匯出|刪除/ })).toHaveCount(0);
   await expect(page.locator('input, textarea, select')).toHaveCount(0);
+  await expect(page.getByLabel(/今日健康總分/)).toHaveCount(0);
 
   await page.evaluate((key) => {
     localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, records: [] }));
   }, storageKey);
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: '尚未有健康紀錄' })).toBeVisible();
-  await expect(page.getByText('健康紀錄將由私人 iPhone 同步流程導入')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
   await expect(page.getByRole('button', { name: /新增|輸入|匯入/ })).toHaveCount(0);
 });
 
-test('可讀取由私人流程寫入的紀錄', async ({ page }) => {
+test('未登入不會讀取瀏覽器內殘留的健康紀錄', async ({ page }) => {
   await page.evaluate((key) => {
     const now = new Date().toISOString();
     localStorage.setItem(key, JSON.stringify({
@@ -70,27 +125,26 @@ test('可讀取由私人流程寫入的紀錄', async ({ page }) => {
   }, storageKey);
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: /2030年1月2日/ })).toBeVisible();
-  await expect(page.getByLabel(/今日健康總分/)).toBeVisible();
-  await expect(page.getByText('11,000 步', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
+  await expect(page.getByText('11,000 步', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '編輯' })).toHaveCount(0);
 });
 
 test('飲食日誌維持私人資料邊界', async ({ page }) => {
   await navigateTo(page, '飲食日誌');
   await expect(page.getByRole('heading', { name: '飲食日誌' })).toBeVisible();
-  await expect(page.getByRole('img', { name: '示範餐點相片預留位置' })).toHaveCount(5);
-  await expect(page.getByText('家庭私人紀錄')).toBeVisible();
+  await expect(page.locator('.journal-meal-card')).toHaveCount(0);
+  await expect(page.getByText('私人資料已鎖定')).toBeVisible();
   await expect(page.getByRole('button', { name: '登入家庭帳戶' })).toBeVisible();
   await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
 });
 
-test('客廳家庭看板只顯示明確標示的虛構示範', async ({ page }) => {
+test('未登入客廳家庭看板不顯示任何成員資料', async ({ page }) => {
   await navigateTo(page, '家庭看板');
 
   await expect(page.getByRole('heading', { name: '今日家庭節奏' })).toBeVisible();
-  await expect(page.getByText('目前顯示虛構示範家庭')).toBeVisible();
-  await expect(page.locator('.family-member-card')).toHaveCount(3);
+  await expect(page.getByText('家庭摘要已鎖定')).toBeVisible();
+  await expect(page.locator('.family-member-card')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '登入家庭看板' })).toBeVisible();
   await expect(page.locator('body')).not.toContainText('private@example.com');
 });
@@ -250,32 +304,7 @@ test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({
 });
 
 test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Data', async ({ page }) => {
-  const privateHealthDays = Array.from({ length: 30 }, (_, index) => {
-    const day = String(index + 1).padStart(2, '0');
-    return {
-      local_date: `2030-01-${day}`,
-      timezone: 'Asia/Macau',
-      source_updated_at: `2030-01-${day}T13:00:00.000Z`,
-      steps: 9_000 + index * 125,
-      active_energy_kcal: 500 + index * 4,
-      exercise_minutes: 30 + (index % 16),
-      sleep_hours: 7 + (index % 4) * 0.25,
-      weight_kg: 98 - index * 0.04,
-      body_fat_percent: 32 - index * 0.02,
-    };
-  });
-  await page.unroute('**/api/auth/session');
-  await page.route('**/api/auth/session', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'Cache-Control': 'private, no-store' },
-      body: JSON.stringify({
-        authenticated: true,
-        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
-      }),
-    });
-  });
+  await mockAuthenticatedHealth(page);
   await page.route('**/api/private/meals', async (route) => {
     await route.fulfill({
       status: 200,
@@ -284,35 +313,6 @@ test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Dat
       body: JSON.stringify({ meals: [] }),
     });
   });
-  await page.route('**/api/private/health', async (route) => {
-    expect(route.request().headers().authorization).toBeUndefined();
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'Cache-Control': 'private, no-store' },
-      body: JSON.stringify({
-        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
-        days: privateHealthDays,
-      }),
-    });
-  });
-  await page.route('**/api/private/health/sync-status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      headers: { 'Cache-Control': 'private, no-store' },
-      body: JSON.stringify({
-        devices: [
-          {
-            deviceInstallationId: 'private-device-id-must-not-render',
-            lastCollectedAt: '2030-01-02T12:55:00.000Z',
-            lastSyncAt: '2030-01-02T13:00:00.000Z',
-          },
-        ],
-      }),
-    });
-  });
-
   await page.goto('/');
 
   await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
@@ -328,6 +328,8 @@ test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Dat
 });
 
 test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {
+  await mockAuthenticatedHealth(page);
+  await page.goto('/');
   const sizes = [
     { name: 'iphone-15-pro', width: 393, height: 852 },
     { name: 'iphone-pro-max', width: 430, height: 932 },

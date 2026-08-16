@@ -1,8 +1,8 @@
 # 個人健康 Dashboard
 
-一個以澳門日常生活與 iPhone Safari 為優先的家庭健康習慣 Dashboard。公開部分只顯示 Demo Data；獲邀請的家庭成員可用自己的帳戶登入，各自查看私人餐食紀錄及受保護縮圖。網站不提供人工健康資料輸入，餐食由每位成員自己的 iPhone Shortcut 寫入。健康指標頁會計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
+一個以澳門日常生活與 iPhone Safari 為優先的家庭健康習慣 Dashboard。未登入時保持鎖定，不顯示任何健康數字；獲邀請的家庭成員登入後，只會看到自己的 Apple Health 日級摘要、私人餐食紀錄及受保護縮圖。網站不提供人工健康資料輸入，餐食由每位成員自己的 iPhone Shortcut 寫入。健康指標頁會計算每日 100 分健康分數，並顯示每日、每週及每月摘要。
 
-> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。一般網頁不會直接讀取 Apple Health；私人資料須由 iPhone HealthBridge 授權、聚合及同步。未登入時的 14 日資料是虛構示例，清楚標示為 **Demo Data · 非真實資料**。
+> 本工具只用於健康習慣追蹤，不提供醫療診斷或治療建議。一般網頁不會直接讀取 Apple Health；私人資料須由 iPhone HealthBridge 授權、聚合及同步。沒有登入或尚未同步時，介面會顯示鎖定／空白狀態，絕不以示例資料代替。
 
 ## 功能
 
@@ -79,17 +79,17 @@ pnpm exec playwright install chromium
 3. 選「加入主畫面」。
 4. 從主畫面開啟即可使用 standalone 顯示。
 
-網站首次開啟會載入 14 日虛構健康資料及虛構飲食日誌。底部導覽有「今日」、「每週」、「每月」、「飲食日誌」和「家庭看板」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。在「家庭看板」登入後，可建立家庭、接受邀請及管理分享範圍。家庭成員登入及邀請方式見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md)；手機餐食建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。客廳 iPad 的顯示與私隱邊界見 [家庭多裝置顯示架構](docs/FAMILY_DISPLAY_ARCHITECTURE.md)。
+網站首次開啟會顯示私人資料鎖定畫面；登入家庭帳戶後，才會讀取該帳戶已同步的真實資料。底部導覽有「今日」、「每週」、「每月」、「飲食日誌」和「家庭看板」。公開版沒有人工輸入頁、編輯按鈕或檔案上傳。在「家庭看板」登入後，可建立家庭、接受邀請及管理分享範圍。家庭成員登入及邀請方式見 [家庭帳戶指南](docs/FAMILY_ACCOUNTS.md)；手機餐食建立方法見 [iPhone Shortcut 設定指南](docs/IPHONE_SHORTCUT_SETUP.md)。客廳 iPad 的顯示與私隱邊界見 [家庭多裝置顯示架構](docs/FAMILY_DISPLAY_ARCHITECTURE.md)。
 
 ## 資料儲存與導入邊界
 
-- 目前公開網站只載入虛構 Demo Data，不提供清除、備份、還原或匯入控制。
+- 未登入的公開網站不載入健康紀錄，也不提供清除、備份、還原或匯入控制。
 - 如需移除瀏覽器內的網站資料，可在 Safari 設定中清除該網站的資料。
 - storage service 仍保留 schema 驗證、版本遷移及匯入／匯出能力，但不會暴露在公開 UI。
 - 真實餐食資料只可經家庭成員自己的可撤銷 Bearer 金鑰，由 iPhone Shortcut API 寫入；不能把一般 ChatGPT 附件視為已自動同步。
 - Shortcut 直接送出壓縮後的 Base64 圖片，不傳外部圖片網址；伺服器會再次驗證格式並重新編碼以移除 EXIF/GPS。
 - Dashboard 登入後只讀取該成員的餐食標籤、日期、餐別、備註及短效受保護縮圖；圖片不使用公開 Blob URL。
-- 公開部署不會在未確認私隱方案前放入真實個人健康資料。
+- 真實健康資料只由已認證、`private, no-store` 的私人 API 傳送，不會打包進公開前端或 Git。
 - HealthKit 第二階段只接受已批准的日級聚合，不接受原始 samples 或逐分鐘時間線；缺失欄位不覆蓋既有值，`0` 則保留為有效觀測。
 - ChatGPT 只在工具被呼叫時讀取資料庫內最新摘要，不會直接讀 HealthKit，也不是排程同步服務。
 
@@ -103,7 +103,7 @@ pnpm exec playwright install chromium
 
 - 一般網站及 ChatGPT 不能直接讀 Apple Health；必須經 iPhone HealthBridge 同步
 - HealthBridge 現階段以手動同步為可靠邊界；iOS 背景執行時間不能保證
-- 未登入時健康指標仍是 Demo Data；登入後才可讀取該成員已同步的私人摘要
+- 未登入時健康指標保持鎖定；登入後才可讀取該成員已同步的私人摘要
 - 公開網站不提供人工輸入、匯入、匯出或自動雲端備份
 - Shortcut 現階段只寫入餐食照片及餐食標籤；不是完整健康紀錄輸入
 - 家庭登入仍受部署 allowlist 保護；管理員可在已登入介面建立 household 邀請，但新成員電郵仍須先在 Auth0 allowlist 內

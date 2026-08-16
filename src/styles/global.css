@@ -146,7 +146,7 @@ small { font-size: 0.78em; }
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
-.demo-pill, .status-badge {
+.data-access-pill, .status-badge {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -157,6 +157,8 @@ small { font-size: 0.78em; }
   font-size: 0.74rem;
   font-weight: 750;
 }
+.data-access-pill.authenticated { color: var(--teal-dark); background: var(--teal-soft); }
+.data-access-pill.checking { color: var(--muted); background: var(--surface-soft); }
 .status-badge.met { color: var(--teal-dark); background: var(--teal-soft); }
 .icon-button {
   width: 42px;
@@ -635,7 +637,7 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
   background: color-mix(in srgb, var(--teal-soft) 48%, var(--surface));
   color: var(--teal-dark);
 }
-.family-board-trust.demo {
+.family-board-trust.locked {
   border-color: color-mix(in srgb, var(--coral) 28%, var(--line));
   background: color-mix(in srgb, var(--coral-soft) 46%, var(--surface));
   color: var(--coral);
@@ -879,7 +881,7 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
   }
   .topbar h1 { font-size: 1.02rem; }
   .topbar .eyebrow { display: none; }
-  .demo-pill { font-size: .66rem; min-height: 25px; padding-inline: 8px; }
+  .data-access-pill { font-size: .66rem; min-height: 25px; padding-inline: 8px; }
   .icon-button { width: 38px; height: 38px; }
   .main-content { padding: 26px 18px 34px; overflow-x: clip; }
   .page-stack { gap: 19px; }

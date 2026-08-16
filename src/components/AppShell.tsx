@@ -8,6 +8,7 @@ import {
   UsersRound
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { FamilySessionStatus } from '../hooks/useFamilySession';
 
 export type AppView =
   | 'today'
@@ -28,7 +29,7 @@ interface AppShellProps {
   children: ReactNode;
   currentView: AppView;
   darkMode: boolean;
-  hasDemoData: boolean;
+  dataAccessStatus: FamilySessionStatus;
   onNavigate: (view: AppView) => void;
   onToggleTheme: () => void;
 }
@@ -37,7 +38,7 @@ export function AppShell({
   children,
   currentView,
   darkMode,
-  hasDemoData,
+  dataAccessStatus,
   onNavigate,
   onToggleTheme
 }: AppShellProps) {
@@ -83,7 +84,15 @@ export function AppShell({
             <h1>{currentView === 'family-board' ? '客廳家庭看板' : '家庭健康 Dashboard'}</h1>
           </div>
           <div className="topbar-actions">
-            {hasDemoData && <span className="demo-pill">Demo Data · 非真實資料</span>}
+            <span className={`data-access-pill ${dataAccessStatus}`}>
+              {dataAccessStatus === 'authenticated'
+                ? '私人資料 · 已登入'
+                : dataAccessStatus === 'checking'
+                  ? '正在確認登入'
+                  : dataAccessStatus === 'error'
+                    ? '登入狀態 · 未確認'
+                    : '私人資料 · 已鎖定'}
+            </span>
             <button
               className="icon-button"
               type="button"

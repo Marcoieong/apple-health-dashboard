@@ -2,11 +2,11 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AppShell, type AppView } from './components/AppShell';
 import { EmptyState } from './components/EmptyState';
 import { HealthSyncStatus } from './components/HealthSyncStatus';
+import { PrivateDataGate } from './components/PrivateDataGate';
 import { useFamilySession } from './hooks/useFamilySession';
 import { useFoodJournal } from './hooks/useFoodJournal';
 import { useFamilyBoard } from './hooks/useFamilyBoard';
 import { useHousehold } from './hooks/useHousehold';
-import { useHealthRecords } from './hooks/useHealthRecords';
 import { usePrivateHealth } from './hooks/usePrivateHealth';
 import { todayKey } from './lib/date';
 import { calculateWeeklySummary } from './lib/summaries';
@@ -54,7 +54,6 @@ function initialView(): AppView {
 }
 
 export default function App() {
-  const { records } = useHealthRecords();
   const [view, setView] = useState<AppView>(initialView);
   const familySession = useFamilySession();
   const isFamilyMember = familySession.status === 'authenticated';
@@ -64,13 +63,15 @@ export default function App() {
     isFamilyMember && isFoodJournalView,
     familySession.refresh
   );
-  const { entries: foodJournalEntries } = foodJournal;
   const familyBoard = useFamilyBoard(isFamilyMember && isFamilyBoardView);
   const household = useHousehold(isFamilyMember && isFamilyBoardView);
   const privateHealth = usePrivateHealth(
     isFamilyMember && !isFoodJournalView && !isFamilyBoardView
   );
-  const activeRecords = isFamilyMember ? privateHealth.records : records;
+  const activeRecords = useMemo(
+    () => (isFamilyMember ? privateHealth.records : []),
+    [isFamilyMember, privateHealth.records]
+  );
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem(THEME_KEY);
     return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -144,7 +145,16 @@ export default function App() {
         }
       />
     );
-  } else if (isFamilyMember && privateHealth.status === 'loading') {
+  } else if (!isFamilyMember) {
+    content = (
+      <PrivateDataGate
+        status={familySession.status}
+        error={familySession.error}
+        onLogin={() => familySession.login(view)}
+        onRetry={familySession.refresh}
+      />
+    );
+  } else if (privateHealth.status === 'loading') {
     content = null;
   } else if (!activeRecords.length) {
     content = <EmptyState />;
@@ -172,11 +182,7 @@ export default function App() {
     <AppShell
       currentView={view}
       darkMode={darkMode}
-      hasDemoData={
-        !isFamilyMember &&
-        (records.some((record) => record.source === 'demo') ||
-          foodJournalEntries.some((entry) => entry.source === 'demo'))
-      }
+      dataAccessStatus={familySession.status}
       onNavigate={navigate}
       onToggleTheme={() => setDarkMode((current) => !current)}
     >

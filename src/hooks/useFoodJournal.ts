@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createDemoMealEntries } from '../data/demoMealEntries';
+import { useCallback, useEffect, useState } from 'react';
 import type { FoodJournalEntry, MealType } from '../models/foodJournal';
 
 export type FoodJournalStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -97,7 +96,6 @@ export function useFoodJournal(
   enabled: boolean,
   onUnauthorized?: () => Promise<void>
 ) {
-  const demoEntries = useMemo(() => createDemoMealEntries(), []);
   const [privateEntries, setPrivateEntries] = useState<FoodJournalEntry[]>([]);
   const [status, setStatus] = useState<FoodJournalStatus>('idle');
   const [error, setError] = useState<string>();
@@ -149,9 +147,9 @@ export function useFoodJournal(
   }, [enabled, loadPrivateMeals]);
 
   return {
-    entries: enabled ? privateEntries : demoEntries,
+    entries: enabled ? privateEntries : [],
     isReadOnly: true as const,
-    mode: enabled ? ('private' as const) : ('demo' as const),
+    mode: enabled ? ('private' as const) : ('locked' as const),
     status,
     error,
     refresh: loadPrivateMeals

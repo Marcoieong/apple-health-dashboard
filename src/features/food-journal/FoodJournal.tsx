@@ -25,7 +25,7 @@ import { FamilyShortcutPanel } from './FamilyShortcutPanel';
 
 interface FoodJournalProps {
   entries: readonly FoodJournalEntry[];
-  mode: 'demo' | 'private';
+  mode: 'locked' | 'private';
   sessionStatus: FamilySessionStatus;
   loading: boolean;
   member?: FamilyMember;
@@ -60,9 +60,9 @@ export function FoodJournal({
           <p>記錄食物種類與飲食模式，不計算卡路里或要求量化份量。</p>
         </div>
         <div className="journal-overview" aria-label="飲食日誌顯示範圍">
-          <span>{isPrivate ? '私人範圍' : '示範範圍'}</span>
+          <span>{isPrivate ? '私人範圍' : '需要登入'}</span>
           <strong>{days.length} 日 · {entries.length} 餐</strong>
-          <small>{isPrivate ? `${memberLabel ?? '家庭成員'} · 只讀` : 'Demo Data · 只讀'}</small>
+          <small>{isPrivate ? `${memberLabel ?? '家庭成員'} · 只讀` : '尚未載入私人資料'}</small>
         </div>
       </section>
 
@@ -71,14 +71,14 @@ export function FoodJournal({
           <LockKeyhole size={20} />
         </span>
         <div>
-          <strong>{isPrivate ? `${memberLabel ?? '家庭成員'}的私人空間` : '家庭私人紀錄'}</strong>
+          <strong>{isPrivate ? `${memberLabel ?? '家庭成員'}的私人空間` : '私人資料已鎖定'}</strong>
           {isPrivate ? (
             <p>
               只顯示你的餐食紀錄與受保護相片。其他家庭成員不能查看；管理員也不會預設取得你的健康資料。
             </p>
           ) : (
             <p>
-              頁面目前只顯示 Demo Data。登入獲邀請的家庭帳戶後，才會載入該成員自己的私人紀錄。
+              登入獲邀請的家庭帳戶後，才會載入該成員自己的私人紀錄；未登入時不顯示示範或私人資料。
             </p>
           )}
         </div>
@@ -156,7 +156,7 @@ export function FoodJournal({
                     </time>
                   </h3>
                   <p>
-                    {day.entries.length} 餐{isPrivate ? '私人' : '示範'}紀錄
+                    {day.entries.length} 餐私人紀錄
                   </p>
                 </div>
               </header>
@@ -183,12 +183,10 @@ export function FoodJournal({
                       >
                         <ImageOff size={28} aria-hidden="true" />
                         <strong>
-                          {isPrivate ? '這餐沒有可顯示的相片' : '相片預留位置'}
+                          這餐沒有可顯示的相片
                         </strong>
                         <span>
-                          {isPrivate
-                            ? `${entry.privatePhotoCount ?? 0} 張私人相片`
-                            : '未載入私人相片'}
+                          {entry.privatePhotoCount ?? 0} 張私人相片
                         </span>
                       </div>
                     )}
@@ -252,7 +250,7 @@ export function FoodJournal({
       ) : (
         <section className="journal-empty">
           <CalendarDays size={26} aria-hidden="true" />
-          <h3>{isPrivate ? '尚未有私人飲食紀錄' : '尚未有飲食紀錄'}</h3>
+          <h3>{isPrivate ? '尚未有私人飲食紀錄' : '私人飲食紀錄已鎖定'}</h3>
           <p>
             {isPrivate
               ? '使用 iPhone Shortcut 寫入後，紀錄會按澳門日期與餐別顯示。'

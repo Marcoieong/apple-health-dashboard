@@ -39,7 +39,7 @@ export function HealthSyncStatus({
         <LoaderCircle className="sync-spinner" size={21} aria-hidden="true" />
         <div>
           <strong>正在載入私人健康資料</strong>
-          <span>資料不會與 Demo Data 混合。</span>
+          <span>只會載入這個帳戶已同步的 Apple Health 每日匯總。</span>
         </div>
       </aside>
     );

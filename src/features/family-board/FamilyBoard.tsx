@@ -6,10 +6,8 @@ import {
   Clock3,
   LockKeyhole,
   RefreshCw,
-  ShieldCheck,
-  UsersRound
+  ShieldCheck
 } from 'lucide-react';
-import { createDemoFamilyBoard } from '../../data/demoFamilyBoard';
 import type { FamilyMember, FamilySessionStatus } from '../../hooks/useFamilySession';
 import type { FamilyBoardStatus } from '../../hooks/useFamilyBoard';
 import type { HouseholdStatus } from '../../hooks/useHousehold';
@@ -102,8 +100,8 @@ export function FamilyBoard({
   onAcceptInvitation,
   onUpdateSharing
 }: FamilyBoardProps) {
-  const isDemo = sessionStatus !== 'authenticated';
-  const board = isDemo ? createDemoFamilyBoard() : data;
+  const isLocked = sessionStatus !== 'authenticated';
+  const board = isLocked ? undefined : data;
 
   return (
     <section className="family-board-page" aria-labelledby="family-board-title">
@@ -123,11 +121,11 @@ export function FamilyBoard({
         )}
       </div>
 
-      <div className={`family-board-trust ${isDemo ? 'demo' : ''}`}>
-        {isDemo ? <UsersRound size={21} /> : <ShieldCheck size={21} />}
+      <div className={`family-board-trust ${isLocked ? 'locked' : ''}`}>
+        {isLocked ? <LockKeyhole size={21} /> : <ShieldCheck size={21} />}
         <div>
-          <strong>{isDemo ? '目前顯示虛構示範家庭' : '經成員授權的家庭摘要'}</strong>
-          <span>{isDemo ? '登入後才會讀取所屬家庭；示範資料不會儲存。' : '家庭成員資格不等於資料查看權；每項摘要均需本人允許。'}</span>
+          <strong>{isLocked ? '家庭摘要已鎖定' : '經成員授權的家庭摘要'}</strong>
+          <span>{isLocked ? '登入後才會讀取所屬家庭；未登入不顯示示範或私人資料。' : '家庭成員資格不等於資料查看權；每項摘要均需本人允許。'}</span>
         </div>
       </div>
 
@@ -148,6 +146,14 @@ export function FamilyBoard({
 
       {sessionStatus === 'checking' || (sessionStatus === 'authenticated' && (status === 'idle' || status === 'loading') && !board) ? (
         <div className="board-state" role="status"><RefreshCw className="sync-spinner" /><h3>正在準備家庭看板…</h3></div>
+      ) : null}
+
+      {sessionStatus === 'signed-out' || sessionStatus === 'error' ? (
+        <div className="board-state" role={sessionStatus === 'error' ? 'alert' : undefined}>
+          <LockKeyhole className="empty-icon" />
+          <h3>{sessionStatus === 'error' ? '未能確認登入狀態' : '登入後查看家庭摘要'}</h3>
+          <p>{sessionStatus === 'error' ? error ?? '登入服務暫時不可用。' : '只有獲授權的真實家庭摘要會顯示在這裡。'}</p>
+        </div>
       ) : null}
 
       {sessionStatus === 'authenticated' && status === 'setup-required' ? (

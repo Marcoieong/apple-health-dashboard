@@ -1,4 +1,3 @@
-import { createDemoRecords } from '../data/demoRecords';
 import type {
   DailyHealthRecord,
   DataImportResult,
@@ -91,10 +90,10 @@ function persist(records: DailyHealthRecord[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
 }
 
-export function loadRecords(seedDemo = true): DailyHealthRecord[] {
+export function loadRecords(): DailyHealthRecord[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    const records = seedDemo ? createDemoRecords() : [];
+    const records: DailyHealthRecord[] = [];
     persist(records);
     return records;
   }
@@ -116,7 +115,7 @@ export function loadRecords(seedDemo = true): DailyHealthRecord[] {
 }
 
 export function saveRecord(input: HealthRecordInput): DailyHealthRecord {
-  const records = loadRecords(false);
+  const records = loadRecords();
   if (records.some((record) => record.date === input.date)) {
     throw new Error('該日期已有紀錄，請改用編輯。');
   }
@@ -133,7 +132,7 @@ export function saveRecord(input: HealthRecordInput): DailyHealthRecord {
 }
 
 export function updateRecord(id: string, input: HealthRecordInput): DailyHealthRecord {
-  const records = loadRecords(false);
+  const records = loadRecords();
   const existing = records.find((record) => record.id === id);
   if (!existing) throw new Error('找不到要更新的紀錄。');
   if (records.some((record) => record.id !== id && record.date === input.date)) {
@@ -150,14 +149,14 @@ export function updateRecord(id: string, input: HealthRecordInput): DailyHealthR
 }
 
 export function deleteRecord(id: string) {
-  persist(loadRecords(false).filter((record) => record.id !== id));
+  persist(loadRecords().filter((record) => record.id !== id));
 }
 
 export function clearAllRecords() {
   persist([]);
 }
 
-export function exportRecords(records = loadRecords(false)) {
+export function exportRecords(records = loadRecords()) {
   return JSON.stringify({ schemaVersion, exportedAt: new Date().toISOString(), records }, null, 2);
 }
 
@@ -166,7 +165,7 @@ export function importRecords(json: string): DataImportResult {
   try {
     parsed = JSON.parse(json);
   } catch {
-    return { records: loadRecords(false), importedCount: 0, skippedCount: 0, errors: ['JSON 格式無效。'] };
+    return { records: loadRecords(), importedCount: 0, skippedCount: 0, errors: ['JSON 格式無效。'] };
   }
 
   const candidates = Array.isArray(parsed)
@@ -175,10 +174,10 @@ export function importRecords(json: string): DataImportResult {
       ? (parsed as Partial<StorageEnvelope>).records!
       : null;
   if (!candidates) {
-    return { records: loadRecords(false), importedCount: 0, skippedCount: 0, errors: ['找不到 records 陣列。'] };
+    return { records: loadRecords(), importedCount: 0, skippedCount: 0, errors: ['找不到 records 陣列。'] };
   }
 
-  const existing = loadRecords(false);
+  const existing = loadRecords();
   const existingDates = new Set(existing.map((record) => record.date));
   const errors: string[] = [];
   const byDate = new Map<string, DailyHealthRecord>();
