@@ -188,16 +188,22 @@ export default function App() {
     >
       {view !== 'food-journal' && view !== 'family-board' && isFamilyMember ? (
         <div className="page-stack">
-          <HealthSyncStatus
-            status={privateHealth.status}
-            syncStatus={privateHealth.syncStatus}
-            recordCount={sorted.length}
-            rangeStart={sorted.at(0)?.date}
-            rangeEnd={sorted.at(-1)?.date}
-            error={privateHealth.error}
-            onRetry={privateHealth.refresh}
-          />
           {resolvedContent}
+          <details
+            className="system-status-disclosure"
+            open={privateHealth.status === 'loading' || privateHealth.status === 'error'}
+          >
+            <summary>資料來源與系統狀態</summary>
+            <HealthSyncStatus
+              status={privateHealth.status}
+              syncStatus={privateHealth.syncStatus}
+              recordCount={sorted.length}
+              rangeStart={sorted.at(0)?.date}
+              rangeEnd={sorted.at(-1)?.date}
+              error={privateHealth.error}
+              onRetry={privateHealth.refresh}
+            />
+          </details>
         </div>
       ) : (
         resolvedContent

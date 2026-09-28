@@ -68,12 +68,15 @@ export function WeeklyTrends({ records }: WeeklyTrendsProps) {
         </div>
       </section>
 
-      <section className="insight-band">
-        <div>
-          <span>本週主要瓶頸</span>
-          <strong>{summary.mainBottleneck}</strong>
-        </div>
-        <p>先改善一個最弱環節，比同時追逐所有數字更容易持續。</p>
+      <section className="weekly-metrics" aria-label="每週摘要指標">
+        <div><span>平均步數</span><strong>{display(summary.averageSteps, ' 步')}</strong></div>
+        <div><span>活動卡路里</span><strong>{display(summary.averageActiveCalories, ' kcal')}</strong></div>
+        <div><span>運動時間</span><strong>{display(summary.averageExerciseMinutes, ' 分鐘')}</strong></div>
+        <div><span>平均睡眠</span><strong>{display(summary.averageSleepHours, ' 小時', 1)}</strong></div>
+        <div><span>體重變化</span><strong>{display(summary.weightChangeKg, ' kg', 1)}</strong></div>
+        <div><span>達標天數</span><strong>{summary.achievedDays} / {summary.records.length} 天</strong></div>
+        <div className="metric-with-icon"><Utensils size={18} /><span>健康外食率</span><strong>{summary.healthyMealRate === null ? '—' : `${Math.round(summary.healthyMealRate * 100)}%`}</strong></div>
+        <div className="metric-with-icon"><Dumbbell size={18} /><span>力量訓練</span><strong>{summary.strengthTrainingCount} 次</strong></div>
       </section>
 
       <section className="chart-section" aria-labelledby="score-chart-title">
@@ -152,15 +155,12 @@ export function WeeklyTrends({ records }: WeeklyTrendsProps) {
         </section>
       </div>
 
-      <section className="weekly-metrics" aria-label="每週摘要指標">
-        <div><span>平均步數</span><strong>{display(summary.averageSteps, ' 步')}</strong></div>
-        <div><span>活動卡路里</span><strong>{display(summary.averageActiveCalories, ' kcal')}</strong></div>
-        <div><span>運動時間</span><strong>{display(summary.averageExerciseMinutes, ' 分鐘')}</strong></div>
-        <div><span>平均睡眠</span><strong>{display(summary.averageSleepHours, ' 小時', 1)}</strong></div>
-        <div><span>體重變化</span><strong>{display(summary.weightChangeKg, ' kg', 1)}</strong></div>
-        <div><span>達標天數</span><strong>{summary.achievedDays} / {summary.records.length} 天</strong></div>
-        <div className="metric-with-icon"><Utensils size={18} /><span>健康外食率</span><strong>{summary.healthyMealRate === null ? '—' : `${Math.round(summary.healthyMealRate * 100)}%`}</strong></div>
-        <div className="metric-with-icon"><Dumbbell size={18} /><span>力量訓練</span><strong>{summary.strengthTrainingCount} 次</strong></div>
+      <section className="insight-band" aria-label="每週分析與建議">
+        <div>
+          <span>本週主要瓶頸</span>
+          <strong>{summary.mainBottleneck}</strong>
+        </div>
+        <p>先改善一個最弱環節，比同時追逐所有數字更容易持續。</p>
       </section>
     </div>
   );

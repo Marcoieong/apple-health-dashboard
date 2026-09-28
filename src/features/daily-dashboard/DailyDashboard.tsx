@@ -38,7 +38,7 @@ export function DailyDashboard({ record, weeklyChange }: DailyDashboardProps) {
 
   return (
     <div className="page-stack">
-      <section className="hero-grid" aria-labelledby="today-title">
+      <section className="content-section" aria-labelledby="today-title">
         <div className="score-panel">
           <div className="section-heading compact">
             <div>
@@ -66,25 +66,6 @@ export function DailyDashboard({ record, weeklyChange }: DailyDashboardProps) {
               {!score.isComplete && (
                 <small>{score.missingFields.length} 項評分資料尚未同步</small>
               )}
-            </div>
-          </div>
-        </div>
-
-        <div className="action-panel">
-          <span className="action-icon" aria-hidden="true">
-            <Sparkles size={22} />
-          </span>
-          <p className="eyebrow">今晚一件事</p>
-          <h2>{advice.title}</h2>
-          <p>{advice.message}</p>
-          <div className="remaining-grid">
-            <div>
-              <strong>{stepsRemaining.toLocaleString()}</strong>
-              <span>尚差步數</span>
-            </div>
-            <div>
-              <strong>{minutesRemaining}</strong>
-              <span>尚差分鐘</span>
             </div>
           </div>
         </div>
@@ -144,6 +125,25 @@ export function DailyDashboard({ record, weeklyChange }: DailyDashboardProps) {
           <strong className={record.strengthTraining ? 'habit-done' : ''}>
             {record.strengthTraining ? <><Check size={18} /> 已完成</> : '未完成'}
           </strong>
+        </div>
+      </section>
+
+      <section className="action-panel" aria-label="今日分析與建議">
+        <span className="action-icon" aria-hidden="true">
+          <Sparkles size={22} />
+        </span>
+        <p className="eyebrow">今晚一件事</p>
+        <h2>{advice.title}</h2>
+        <p>{advice.message}</p>
+        <div className="remaining-grid">
+          <div>
+            <strong>{stepsRemaining.toLocaleString()}</strong>
+            <span>尚差步數</span>
+          </div>
+          <div>
+            <strong>{minutesRemaining}</strong>
+            <span>尚差分鐘</span>
+          </div>
         </div>
       </section>
 

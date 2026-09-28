@@ -1031,3 +1031,25 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Keep operational details after health content on every dashboard view. */
+.system-status-disclosure {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.system-status-disclosure > summary {
+  padding: 18px 22px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.system-status-disclosure > summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 18px;
+}
+.system-status-disclosure > .health-sync-status {
+  margin: 0 16px 16px;
+}

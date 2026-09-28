@@ -315,6 +315,8 @@ test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Dat
   });
   await page.goto('/');
 
+  await expect(page.getByText('私人 Apple Health 資料')).not.toBeVisible();
+  await page.locator('.system-status-disclosure > summary').click();
   await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
   await expect(page.getByText(/已載入 30 日 · 1\/1–1\/30 · 1 部裝置/)).toBeVisible();
   await expect(page.getByText('12,625 步', { exact: true })).toBeVisible();
@@ -375,4 +377,77 @@ test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({
     path: testInfo.outputPath('desktop-1366-weekly-light.png'),
     fullPage: true,
   });
+});
+
+for (const size of [
+  { name: 'iphone', width: 393, height: 852 },
+  { name: 'iphone-landscape', width: 852, height: 393 },
+  { name: 'ipad', width: 768, height: 1024 },
+  { name: 'ipad-landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 1000 },
+]) {
+  for (const theme of ['light', 'dark']) {
+    test(`健康內容先於建議及可收合狀態：${size.name} ${theme}`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await mockAuthenticatedHealth(page);
+      await page.clock.setFixedTime(new Date('2030-01-30T12:00:00Z'));
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: themeKey, value: theme });
+      await page.goto('/');
+      for (const view of [
+        { label: '今日', name: 'today', metrics: '.stats-strip', advice: '.action-panel', chart: '.progress-list' },
+        { label: '每週', name: 'weekly', metrics: '.weekly-metrics', advice: '.insight-band', chart: '.chart-grid' },
+        { label: '每月', name: 'monthly', metrics: '[aria-label="本月活動與習慣"]', advice: '.summary-panel', chart: '[aria-labelledby="monthly-chart-title"]' },
+      ]) {
+        await navigateTo(page, view.label);
+        await expect(page.locator(view.metrics)).toBeVisible();
+        await expect(page.locator(view.advice)).toBeVisible();
+        const disclosure = page.locator('.system-status-disclosure');
+        await expect(disclosure).not.toHaveAttribute('open');
+        const positions = await page.evaluate(({ metrics, advice, chart }) => {
+          const bounds = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+          return { metricBottom: bounds(metrics).bottom, chartBottom: bounds(chart).bottom, adviceTop: bounds(advice).top, adviceBottom: bounds(advice).bottom, statusTop: bounds('.system-status-disclosure').top };
+        }, view);
+        expect(positions.metricBottom).toBeLessThanOrEqual(positions.adviceTop);
+        expect(positions.chartBottom).toBeLessThanOrEqual(positions.adviceTop);
+        expect(positions.adviceBottom).toBeLessThanOrEqual(positions.statusTop);
+        await disclosure.locator('summary').focus();
+        await page.keyboard.press('Enter');
+        await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+        await page.keyboard.press('Enter');
+        await expect(disclosure).not.toHaveAttribute('open');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+        if (view.name !== 'today') {
+          await expect(page.locator('.recharts-surface').first()).toBeVisible();
+          await expect(page.locator('.recharts-line-curve, .recharts-area-curve').first()).toHaveAttribute('d', /[1-9]/);
+        }
+        // Label captured fixtures so screenshots cannot be mistaken for private live data.
+        await page.evaluate(() => {
+          let label = document.getElementById('qa-fixture-label');
+          if (!label) { label = document.createElement('div'); label.id = 'qa-fixture-label'; document.body.prepend(label); }
+          label.textContent = '版面驗證 · 合成測試資料 · 非真實健康紀錄';
+          label.style.cssText = 'background:#ffdf80;color:#302500;padding:8px;text-align:center;font:14px sans-serif;position:relative;z-index:100';
+        });
+        await page.screenshot({ path: testInfo.outputPath(`${size.name}-${view.name}-${theme}.png`), fullPage: true });
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+test('資料失敗時底部狀態自動展開，重試成功後可收合', async ({ page }) => {
+  await mockAuthenticatedHealth(page);
+  let attempts = 0;
+  await page.route('**/api/private/health', async (route) => {
+    attempts += 1;
+    await route.fulfill({ status: attempts === 1 ? 500 : 200, contentType: 'application/json', body: JSON.stringify(attempts === 1 ? { error: '暫時無法載入' } : { days: privateHealthDays }) });
+  });
+  await page.goto('/');
+  await expect(page.locator('.system-status-disclosure')).toHaveAttribute('open');
+  await expect(page.getByText('私人健康資料暫時未能載入')).toBeVisible();
+  await page.getByRole('button', { name: '重試', exact: true }).click();
+  await expect(page.getByLabel(/今日健康總分/)).toBeVisible();
+  await expect(page.locator('.system-status-disclosure')).not.toHaveAttribute('open');
 });

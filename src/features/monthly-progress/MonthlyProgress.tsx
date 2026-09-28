@@ -80,6 +80,14 @@ export function MonthlyProgress({ records, month }: MonthlyProgressProps) {
         <div><span>腰圍變化</span><strong>{changeLabel(summary.waistChangeCm, 'cm')}</strong></div>
       </section>
 
+      <section className="stats-strip" aria-label="本月活動與習慣">
+        <div><span>平均步數</span><strong>{summary.averageSteps?.toLocaleString() ?? '—'}</strong></div>
+        <div><span>活動 kcal</span><strong>{summary.averageActiveCalories?.toLocaleString() ?? '—'}</strong></div>
+        <div><span>平均睡眠</span><strong>{summary.averageSleepHours?.toFixed(1) ?? '—'} h</strong></div>
+        <div><span>力量訓練</span><strong>{summary.strengthTrainingCount} 次</strong></div>
+        <div><span>健康外食</span><strong>{summary.healthyMealRate === null ? '—' : `${Math.round(summary.healthyMealRate * 100)}%`}</strong></div>
+      </section>
+
       <section className="chart-section recent-health-section" aria-labelledby="recent-health-title">
         <div className="section-heading compact">
           <div>
@@ -113,7 +121,7 @@ export function MonthlyProgress({ records, month }: MonthlyProgressProps) {
         </div>
       </section>
 
-      <div className="monthly-layout">
+      <div className="page-stack">
         <section className="chart-section" aria-labelledby="monthly-chart-title">
           <div className="section-heading compact">
             <div>
@@ -141,17 +149,10 @@ export function MonthlyProgress({ records, month }: MonthlyProgressProps) {
           </div>
         </section>
 
-        <section className="summary-panel">
+        <section className="summary-panel" aria-label="每月分析與建議">
           <span className="summary-icon" aria-hidden="true"><Target size={22} /></span>
           <p className="eyebrow">本月總結</p>
           <h3>{summary.summary}</h3>
-          <div className="summary-averages">
-            <div><span>平均步數</span><strong>{summary.averageSteps?.toLocaleString() ?? '—'}</strong></div>
-            <div><span>活動 kcal</span><strong>{summary.averageActiveCalories?.toLocaleString() ?? '—'}</strong></div>
-            <div><span>平均睡眠</span><strong>{summary.averageSleepHours?.toFixed(1) ?? '—'} h</strong></div>
-            <div><span>力量訓練</span><strong>{summary.strengthTrainingCount} 次</strong></div>
-            <div><span>健康外食</span><strong>{summary.healthyMealRate === null ? '—' : `${Math.round(summary.healthyMealRate * 100)}%`}</strong></div>
-          </div>
         </section>
       </div>
 
