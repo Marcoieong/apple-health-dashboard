@@ -14,6 +14,6 @@
 
 Vercel 的 Git 連結仍把 `main` 設為 productionBranch；main 的程式是歷史展示原型。文件更新本身也可能觸發舊程式部署。因此此文件清理 PR 暫不合併，需先使正式分支與已驗收來源一致，或另行完成部署設定調整。
 
-GitHub Pages 是被 Vercel 取代的舊展示部署，不再用作正式網站。舊 gh-pages 分支保留作歷史記錄。未修改 DNS。
+GitHub Pages 是被 Vercel 取代的舊展示部署，不再用作正式網站。舊 gh-pages 分支保留作歷史記錄。GitHub Pages 設定仍啟用，且殘留同一自訂網域；2026-09-29 嘗試停用時，GitHub API 回覆 HTTP 422「Deactivating GitHub pages for this repository is not allowed.」。瀏覽器未登入，未完成設定介面的替代操作；不得標記已停用。未修改 DNS。
 
 不要把本機尚未提交的登入、HealthBridge、同步或建議匯入程式一併發布。每次應核對實際部署、來源 commit、測試與資料存取結果。
