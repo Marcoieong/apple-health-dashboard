@@ -1,0 +1,79 @@
+import { describe, expect, it } from 'vitest';
+import type { JWTPayload } from 'jose';
+import {
+  buildWwwAuthenticate,
+  classifyJwtVerificationError,
+  extractBearerToken,
+  extractScopes,
+  getMcpAccessTokenDiagnostic,
+  McpAccessTokenError
+} from './oauth.js';
+import type { ChatGptMcpRuntimeConfig } from './runtimeConfig.js';
+
+describe('ChatGPT MCP OAuth helpers', () => {
+  it('accepts one strict Bearer token and rejects ambiguous headers', () => {
+    expect(extractBearerToken('Bearer abc.def.ghi')).toBe('abc.def.ghi');
+    expect(extractBearerToken('bearer token')).toBe('token');
+    expect(extractBearerToken('Basic token')).toBeUndefined();
+    expect(extractBearerToken(['Bearer one', 'Bearer two'])).toBeUndefined();
+    expect(extractBearerToken('Bearer one two')).toBeUndefined();
+  });
+
+  it('combines OAuth scope and scp claims without duplicates', () => {
+    const payload = {
+      scope: 'openid meal.write',
+      scp: ['meal.write', 'profile', 123]
+    } as JWTPayload;
+
+    expect(extractScopes(payload)).toEqual([
+      'openid',
+      'meal.write',
+      'profile'
+    ]);
+  });
+
+  it('reports only safe token rejection categories', () => {
+    expect(
+      classifyJwtVerificationError({
+        code: 'ERR_JWT_CLAIM_VALIDATION_FAILED',
+        claim: 'aud',
+        payload: 'must-not-be-logged'
+      })
+    ).toBe('jwt_audience_mismatch');
+    expect(
+      classifyJwtVerificationError({ code: 'ERR_JWT_EXPIRED' })
+    ).toBe('jwt_expired');
+    expect(
+      getMcpAccessTokenDiagnostic(
+        new McpAccessTokenError('missing_health_scope')
+      )
+    ).toBe('missing_health_scope');
+    expect(getMcpAccessTokenDiagnostic(new Error('secret'))).toBe(
+      'unexpected_error'
+    );
+  });
+
+  it('advertises the protected-resource metadata and least-privilege scopes', () => {
+    const config: ChatGptMcpRuntimeConfig = {
+      resourceUrl: new URL('https://health.pui-pui.org/mcp'),
+      authorizationServer: new URL('https://login.example.com/'),
+      issuer: 'https://login.example.com/',
+      audience: 'https://health.pui-pui.org/api/mcp',
+      jwksUri: new URL('https://login.example.com/jwks.json'),
+      ownerId: 'existing-marco-owner',
+      allowedSubject: 'auth0|owner'
+    };
+
+    expect(buildWwwAuthenticate(config)).toBe(
+      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read"'
+    );
+    expect(
+      buildWwwAuthenticate(config, {
+        error: 'insufficient_scope',
+        errorDescription: 'health.read scope is required'
+      })
+    ).toBe(
+      'Bearer resource_metadata="https://health.pui-pui.org/.well-known/oauth-protected-resource", scope="health.read", error="insufficient_scope", error_description="health.read scope is required"'
+    );
+  });
+});

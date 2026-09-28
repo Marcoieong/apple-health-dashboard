@@ -4,20 +4,28 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc -b && vite build --config vite.config.ts && node scripts/assert-public-bundle-safe.mjs dist",
+    "privacy:scan": "node scripts/assert-public-bundle-safe.mjs dist",
+    "private-db:migrate": "node scripts/apply-private-schema.mjs",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "preview": "vite preview"
+    "preview": "vite preview --config vite.config.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "@vercel/blob": "^2.6.1",
+    "jose": "^6.2.4",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.0",
-    "workbox-window": "^7.4.1"
+    "sharp": "^0.35.3",
+    "workbox-window": "^7.4.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -27,6 +35,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
+    "@vercel/node": "^5.8.27",
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",

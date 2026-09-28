@@ -1,57 +1,21 @@
-# 部署指南
+# 部署與分支
 
-## Build
+核對日期：2026-09-29（Asia/Macau）。
 
-```bash
-pnpm install --frozen-lockfile
-pnpm lint
-pnpm test
-pnpm build
-```
+## 單一正式發布流程
 
-輸出目錄為 `dist/`。本專案沒有 URL 子路由，因此重新整理不依賴伺服器 SPA fallback；service worker 與 manifest 由 Vite PWA plugin 產生。
-
-## Cloudflare Pages（推薦）
-
-建議第一階段使用 Cloudflare Pages：根路徑設定簡單，preview deployment 易於先在 iPhone 測試，也不需為 repo 名稱調整 asset base。
-
-1. 在 Cloudflare Pages 連接 GitHub repo。
-2. Framework preset 選 `Vite`。
-3. Build command：`pnpm build`
-4. Build output directory：`dist`
-5. Node.js 版本：20 或以上。
-6. 不設定 `VITE_BASE_PATH`，使用預設 `/`。
-7. 部署後以 iPhone Safari 測試三個只讀頁面、深色模式與加入主畫面。
-
-目前公開版本只包含虛構 Demo Data。真實個人健康資料不得加入公開部署；需先建立認證與私人資料層。
+- 正式網站：https://health.pui-pui.org/
+- 唯一正式分支：`main`；Vercel Git productionBranch 亦為 `main`。
+- 本次整合的應用程式基線：已驗收 commit `61a05733b77507a492c9d43a787974b7fcd7643d`。
+- 開發分支先通過 lint、測試、build 及 Vercel 預覽，再合併 main 發布。
+- 舊分支保留歷史；不作為另一個正式發布入口。
 
 ## GitHub Pages
 
-`.github/workflows/deploy-pages.yml` 已準備好。推送至 `main` 後，在 GitHub repo：
+已移除 Pages 發布工作流程、解除 Pages 的 health.pui-pui.org 自訂網域，並改為 workflow 模式，避免 gh-pages 分支推送再觸發發布。DNS 未修改。
 
-1. 開啟 Settings → Pages。
-2. Source 選 GitHub Actions。
-3. workflow 會把 `VITE_BASE_PATH` 設為 `/<repo-name>/` 後 build。
-4. workflow 成功後，用 Pages 網址實機驗證。
+GitHub DELETE Pages API 仍可能拒絕停用（HTTP 422）；解除自訂網域與停用舊發布流程不等於舊 github.io 網址已下線。此限制須以 API 回應和實際網址另行核對。
 
-若改用自訂網域，應把 `VITE_BASE_PATH` 改為 `/` 並重新 build。
+## 範圍與核對
 
-## iPhone 加到主畫面
-
-1. 使用 Safari 開啟正式 HTTPS 網址。
-2. 點分享按鈕。
-3. 選「加入主畫面」。
-4. 確認名稱「每日健康」後加入。
-
-基礎 PWA 可離線載入已快取的前端資源。它不會在背景同步 Apple Health。
-
-## 上線前檢查
-
-- HTTPS 正常
-- `manifest.webmanifest` 與 service worker 可載入
-- iPhone 393×852 及 430×932 無橫向溢出
-- 主畫面 standalone 開啟
-- 沒有輸入欄、編輯、刪除或檔案上載入口
-- 三個導覽頁為「今日／每週／每月」
-- 清楚顯示「ChatGPT 匯入 · Demo」
-- 沒有 analytics、廣告或真實健康資料進入 Git
+本次整合未納入本機尚未提交的登入、HealthBridge、同步或建議匯入修改。每次發布均需核對 Vercel 部署、來源 commit、網站回應及私人資料存取；HTTP 200 不代表健康資料更新或全自動同步完成。

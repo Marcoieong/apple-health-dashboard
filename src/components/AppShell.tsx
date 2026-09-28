@@ -3,23 +3,33 @@ import {
   CalendarDays,
   HeartPulse,
   Moon,
-  Sun
+  Sun,
+  Utensils,
+  UsersRound
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { FamilySessionStatus } from '../hooks/useFamilySession';
 
-export type AppView = 'today' | 'weekly' | 'monthly';
+export type AppView =
+  | 'today'
+  | 'weekly'
+  | 'monthly'
+  | 'food-journal'
+  | 'family-board';
 
 const navigation: { id: AppView; label: string; icon: typeof HeartPulse }[] = [
   { id: 'today', label: '今日', icon: HeartPulse },
   { id: 'weekly', label: '每週', icon: BarChart3 },
-  { id: 'monthly', label: '每月', icon: CalendarDays }
+  { id: 'monthly', label: '每月', icon: CalendarDays },
+  { id: 'food-journal', label: '飲食日誌', icon: Utensils },
+  { id: 'family-board', label: '家庭看板', icon: UsersRound }
 ];
 
 interface AppShellProps {
   children: ReactNode;
   currentView: AppView;
   darkMode: boolean;
-  hasDemoData: boolean;
+  dataAccessStatus: FamilySessionStatus;
   onNavigate: (view: AppView) => void;
   onToggleTheme: () => void;
 }
@@ -28,12 +38,12 @@ export function AppShell({
   children,
   currentView,
   darkMode,
-  hasDemoData,
+  dataAccessStatus,
   onNavigate,
   onToggleTheme
 }: AppShellProps) {
   return (
-    <div className="app-shell">
+    <div className={currentView === 'family-board' ? 'app-shell family-board-shell' : 'app-shell'}>
       <aside className="sidebar" aria-label="主要導覽">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -41,7 +51,7 @@ export function AppShell({
           </span>
           <div>
             <strong>健康節奏</strong>
-            <small>Personal dashboard</small>
+            <small>Family dashboard</small>
           </div>
         </div>
         <nav className="side-nav">
@@ -61,8 +71,8 @@ export function AppShell({
         <div className="privacy-note">
           <span className="status-dot" aria-hidden="true" />
           <div>
-            <strong>ChatGPT 匯入</strong>
-            <span>Dashboard 只讀，沒有手動輸入</span>
+            <strong>{currentView === 'family-board' ? '授權摘要' : '唯讀 Dashboard'}</strong>
+            <span>{currentView === 'family-board' ? '不顯示私人原始資料' : '不提供網頁人工輸入'}</span>
           </div>
         </div>
       </aside>
@@ -70,11 +80,19 @@ export function AppShell({
       <div className="workspace">
         <header className="topbar">
           <div>
-            <span className="eyebrow">澳門 · ChatGPT 匯入</span>
-            <h1>個人健康 Dashboard</h1>
+            <span className="eyebrow">{currentView === 'family-board' ? '家庭共用 · 私隱優先' : '澳門 · 唯讀健康紀錄'}</span>
+            <h1>{currentView === 'family-board' ? '客廳家庭看板' : '家庭健康 Dashboard'}</h1>
           </div>
           <div className="topbar-actions">
-            {hasDemoData && <span className="demo-pill">ChatGPT 匯入 · Demo</span>}
+            <span className={`data-access-pill ${dataAccessStatus}`}>
+              {dataAccessStatus === 'authenticated'
+                ? '私人資料 · 已登入'
+                : dataAccessStatus === 'checking'
+                  ? '正在確認登入'
+                  : dataAccessStatus === 'error'
+                    ? '登入狀態 · 未確認'
+                    : '私人資料 · 已鎖定'}
+            </span>
             <button
               className="icon-button"
               type="button"
