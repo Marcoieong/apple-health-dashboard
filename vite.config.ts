@@ -9,10 +9,24 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
+      workbox: {
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/mcp(?:\/|$)/,
+          /^\/\.well-known\//
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            handler: 'NetworkOnly',
+            method: 'GET'
+          }
+        ]
+      },
       manifest: {
-        name: '每日健康 Dashboard',
-        short_name: '每日健康',
-        description: '由 ChatGPT 匯入資料的只讀個人健康習慣 Dashboard',
+        name: '家庭健康 Dashboard',
+        short_name: '家庭健康',
+        description: '支援個人手機、客廳 iPad 及電腦的私隱優先家庭健康 Dashboard',
         theme_color: '#0b7777',
         background_color: '#ffffff',
         display: 'standalone',

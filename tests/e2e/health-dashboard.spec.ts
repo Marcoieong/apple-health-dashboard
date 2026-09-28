@@ -1,73 +1,367 @@
 import { expect, test, type Page } from '@playwright/test';
-import path from 'node:path';
 
 const themeKey = 'personal-health-dashboard:theme';
-const screenshotDir = path.resolve('docs/screenshots');
+const storageKey = 'personal-health-dashboard.records';
+const privateHealthDays = Array.from({ length: 30 }, (_, index) => {
+  const day = String(index + 1).padStart(2, '0');
+  return {
+    local_date: `2030-01-${day}`,
+    timezone: 'Asia/Macau',
+    source_updated_at: `2030-01-${day}T13:00:00.000Z`,
+    steps: 9_000 + index * 125,
+    active_energy_kcal: 500 + index * 4,
+    exercise_minutes: 30 + (index % 16),
+    sleep_hours: 7 + (index % 4) * 0.25,
+    weight_kg: 98 - index * 0.04,
+    body_fat_percent: 32 - index * 0.02,
+  };
+});
 
 async function navigateTo(page: Page, label: string) {
   await page
-    .locator('.side-nav button:visible, .bottom-nav button:visible', { hasText: label })
+    .locator('.side-nav button:visible, .bottom-nav button:visible')
+    .filter({ hasText: label })
     .click();
 }
 
-test('Dashboard 是由 ChatGPT 管理資料的只讀三頁介面', async ({ page }) => {
+async function mockAuthenticatedHealth(page: Page) {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/health', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
+        days: privateHealthDays,
+      }),
+    });
+  });
+  await page.route('**/api/private/health/sync-status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        devices: [{
+          deviceInstallationId: 'private-device-id-must-not-render',
+          lastCollectedAt: '2030-01-02T12:55:00.000Z',
+          lastSyncAt: '2030-01-02T13:00:00.000Z',
+        }],
+      }),
+    });
+  });
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ authenticated: false }),
+    });
+  });
   await page.addInitScript((theme) => localStorage.setItem(theme, 'light'), themeKey);
   await page.goto('/');
-
-  await expect(page.getByText('ChatGPT 匯入 · Demo')).toBeVisible();
-  await expect(page.getByText('編輯資料')).toHaveCount(0);
-  await expect(page.getByText('數據輸入')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '輸入' })).toHaveCount(0);
-  await expect(page.locator('input, textarea, select')).toHaveCount(0);
-
-  const visibleNavigation = page.locator('.side-nav button:visible, .bottom-nav button:visible');
-  await expect(visibleNavigation).toHaveCount(3);
-  await expect(visibleNavigation).toHaveText(['今日', '每週', '每月']);
-
-  await navigateTo(page, '每週');
-  await expect(page.getByRole('heading', { name: '每週趨勢' })).toBeVisible();
-  await navigateTo(page, '每月');
-  await expect(page.getByRole('heading', { name: '每月進度' })).toBeVisible();
-
-  expect(
-    await page.evaluate(() => localStorage.getItem('personal-health-dashboard:v1'))
-  ).toBeNull();
 });
 
-test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }) => {
-  await page.addInitScript((theme) => localStorage.setItem(theme, 'light'), themeKey);
+test('未登入 Dashboard 鎖定私人資料且不顯示人工輸入控制', async ({ page }) => {
+  await expect(page.getByText('私人資料 · 已鎖定')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '登入家庭帳戶' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '輸入' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /編輯|新增|儲存|匯入|匯出|刪除/ })).toHaveCount(0);
+  await expect(page.locator('input, textarea, select')).toHaveCount(0);
+  await expect(page.getByLabel(/今日健康總分/)).toHaveCount(0);
+
+  await page.evaluate((key) => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, records: [] }));
+  }, storageKey);
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /新增|輸入|匯入/ })).toHaveCount(0);
+});
+
+test('未登入不會讀取瀏覽器內殘留的健康紀錄', async ({ page }) => {
+  await page.evaluate((key) => {
+    const now = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify({
+      schemaVersion: 1,
+      records: [{
+        id: 'chatgpt-record-1',
+        date: '2030-01-02',
+        steps: 11000,
+        activeCalories: 620,
+        exerciseMinutes: 45,
+        sleepHours: 7.5,
+        weightKg: 97.4,
+        bodyFatPercent: 32.4,
+        waistCm: 103,
+        strengthTraining: true,
+        lunchHighProtein: true,
+        dinnerHighProtein: true,
+        vegetablesCompleted: true,
+        noSugaryDrink: true,
+        noLateNightMeal: true,
+        source: 'chatgpt',
+        createdAt: now,
+        updatedAt: now,
+      }],
+    }));
+  }, storageKey);
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: '私人健康資料已鎖定' })).toBeVisible();
+  await expect(page.getByText('11,000 步', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '編輯' })).toHaveCount(0);
+});
+
+test('飲食日誌維持私人資料邊界', async ({ page }) => {
+  await navigateTo(page, '飲食日誌');
+  await expect(page.getByRole('heading', { name: '飲食日誌' })).toBeVisible();
+  await expect(page.locator('.journal-meal-card')).toHaveCount(0);
+  await expect(page.getByText('私人資料已鎖定')).toBeVisible();
+  await expect(page.getByRole('button', { name: '登入家庭帳戶' })).toBeVisible();
+  await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
+});
+
+test('未登入客廳家庭看板不顯示任何成員資料', async ({ page }) => {
+  await navigateTo(page, '家庭看板');
+
+  await expect(page.getByRole('heading', { name: '今日家庭節奏' })).toBeVisible();
+  await expect(page.getByText('家庭摘要已鎖定')).toBeVisible();
+  await expect(page.locator('.family-member-card')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '登入家庭看板' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('private@example.com');
+});
+
+test('登入後家庭看板只呈現成員授權摘要', async ({ page }, testInfo) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'private-member@example.com', name: '私人名稱', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/family-board', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        schemaVersion: 1,
+        household: { id: 'household-safe-id', name: '測試家庭' },
+        generatedAt: '2030-01-02T13:00:00.000Z',
+        refreshAfterSeconds: 300,
+        members: [{
+          memberId: 'member-safe-id',
+          displayName: '家庭成員甲',
+          avatarLabel: '甲',
+          isCurrentUser: true,
+          asOfDate: '2030-01-02',
+          score: 84,
+          rating: 'Very Good',
+          weeklyDirection: 'up',
+          metrics: {
+            steps: { status: 'met', progressPercent: 110, label: '步數已達標' },
+            exercise: { status: 'close', progressPercent: 88, label: '尚差 4 分鐘' },
+            sleep: { status: 'met', progressPercent: 100, label: '睡眠達標' },
+          },
+          advice: '晚飯後輕鬆步行，保持今天的良好節奏。',
+          sharedScopes: ['score', 'activity_status', 'sleep_status', 'weekly_direction', 'advice'],
+        }],
+      }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/?section=family-board');
+
+  await expect(page.getByText('經成員授權的家庭摘要')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '家庭成員甲' })).toBeVisible();
+  await expect(page.getByLabel('健康評分 84 分')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('private-member@example.com');
+  await expect(page.locator('body')).not.toContainText('私人名稱');
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, 'iPad 橫向家庭看板不應橫向溢出').toBeLessThanOrEqual(0);
+  await page.screenshot({
+    path: testInfo.outputPath('ipad-landscape-family-board.png'),
+    fullPage: true,
+  });
+});
+
+test('家庭登入只載入該成員的私人餐食與受保護縮圖', async ({ page }) => {
+  await page.unroute('**/api/auth/session');
+  await page.route('**/api/auth/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        authenticated: true,
+        member: { email: 'member@example.com', name: '家庭成員', isAdmin: false },
+      }),
+    });
+  });
+  await page.route('**/api/private/meals', async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        meals: [
+          {
+            id: 'opaque-meal-123',
+            localDate: '2030-01-02',
+            timezone: 'Asia/Macau',
+            mealType: 'dinner',
+            foodLabels: ['雞肉', '西蘭花'],
+            preparationMethods: ['清蒸'],
+            notes: 'Shortcut 測試紀錄',
+            source: 'shortcut',
+            photoCount: 1,
+            thumbnail: {
+              url: '/api/private/photo?token=signed-locator',
+              width: 640,
+              height: 480,
+            },
+            recordedAt: '2030-01-02T12:00:00.000Z',
+          },
+        ],
+      }),
+    });
+  });
+  await page.route('**/api/private/health', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({
+        range: { start: '2030-01-01', end: '2030-01-31', timezone: 'Asia/Macau' },
+        days: [],
+      }),
+    });
+  });
+  await page.route('**/api/private/health/sync-status', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ devices: [] }),
+    });
+  });
+  await page.route('**/api/private/shortcut-credentials', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ credentials: [] }),
+    });
+  });
+
+  await page.goto('/?section=food-journal');
+
+  await expect(page.getByText('家庭成員的私人空間')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '雞肉、西蘭花' })).toBeVisible();
+  await expect(page.locator('.journal-meal-card img')).toHaveAttribute(
+    'src',
+    '/api/private/photo?token=signed-locator',
+  );
+  await expect(page.getByText('家庭成員 · 只讀')).toBeVisible();
+  await expect(page.getByLabel('私人存取碼')).toHaveCount(0);
+  await expect(page.getByText('iPhone 上傳設定')).toBeVisible();
+
+  const browserStorage = await page.evaluate(() => ({
+    local: JSON.stringify(localStorage),
+    session: JSON.stringify(sessionStorage),
+  }));
+  expect(browserStorage.local).not.toContain('signed-locator');
+  expect(browserStorage.session).not.toContain('signed-locator');
+  expect(browserStorage.local).not.toContain('member@example.com');
+  expect(browserStorage.session).not.toContain('member@example.com');
+});
+
+test('家庭登入顯示成員隔離的 Apple Health 資料且不混入 Demo Data', async ({ page }) => {
+  await mockAuthenticatedHealth(page);
+  await page.route('**/api/private/meals', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: JSON.stringify({ meals: [] }),
+    });
+  });
   await page.goto('/');
 
+  await expect(page.getByText('私人 Apple Health 資料')).not.toBeVisible();
+  await page.locator('.system-status-disclosure > summary').click();
+  await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
+  await expect(page.getByText(/已載入 30 日 · 1\/1–1\/30 · 1 部裝置/)).toBeVisible();
+  await expect(page.getByText('12,625 步', { exact: true })).toBeVisible();
+  await expect(page.getByText('Demo Data · 非真實資料')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('private-device-id-must-not-render');
+
+  await navigateTo(page, '每月');
+  await expect(page.getByRole('heading', { name: '最近 30 日活動與睡眠' })).toBeVisible();
+  await expect(page.getByText('1/1–1/30 · 30 日')).toBeVisible();
+  await expect(page.getByRole('img', { name: '最近30日 Apple Health 活動與睡眠趨勢圖' })).toBeVisible();
+});
+
+test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({ page }, testInfo) => {
+  await mockAuthenticatedHealth(page);
+  await page.goto('/');
   const sizes = [
     { name: 'iphone-15-pro', width: 393, height: 852 },
     { name: 'iphone-pro-max', width: 430, height: 932 },
     { name: 'ipad', width: 768, height: 1024 },
+    { name: 'ipad-landscape', width: 1024, height: 768 },
     { name: 'desktop-1366', width: 1366, height: 768 },
-    { name: 'desktop-1920', width: 1920, height: 1080 }
+    { name: 'desktop-1920', width: 1920, height: 1080 },
   ];
 
   for (const size of sizes) {
     await page.setViewportSize({ width: size.width, height: size.height });
     const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow, `${size.name} 不應橫向溢出`).toBeLessThanOrEqual(0);
   }
 
   await page.setViewportSize({ width: 393, height: 852 });
-  await expect(page.getByText('ChatGPT 匯入 · Demo')).toBeVisible();
   await expect(page.getByLabel(/今日健康總分/)).toBeVisible();
-  await expect(page.locator('.bottom-nav button')).toHaveCount(3);
+  await expect(page.locator('.bottom-nav button')).toHaveCount(5);
   await page.screenshot({
-    path: path.join(screenshotDir, 'iphone-15-pro-today-read-only-light.png'),
-    fullPage: true
+    path: testInfo.outputPath('iphone-15-pro-today-light.png'),
+    fullPage: true,
   });
 
   await page.getByRole('button', { name: '切換至深色模式' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.screenshot({
-    path: path.join(screenshotDir, 'iphone-15-pro-today-dark.png'),
-    fullPage: true
+    path: testInfo.outputPath('iphone-15-pro-today-dark.png'),
+    fullPage: true,
   });
 
   await page.setViewportSize({ width: 1366, height: 768 });
@@ -80,7 +374,80 @@ test('深色模式、圖表與五種響應式尺寸沒有橫向溢出', async ({
   await expect(page.locator('.recharts-line-curve').first()).toHaveAttribute('d', /[1-9]/);
   await expect(page.locator('.recharts-area-area')).toHaveCount(1);
   await page.screenshot({
-    path: path.join(screenshotDir, 'desktop-1366-weekly-light.png'),
-    fullPage: true
+    path: testInfo.outputPath('desktop-1366-weekly-light.png'),
+    fullPage: true,
   });
+});
+
+for (const size of [
+  { name: 'iphone', width: 393, height: 852 },
+  { name: 'iphone-landscape', width: 852, height: 393 },
+  { name: 'ipad', width: 768, height: 1024 },
+  { name: 'ipad-landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 1000 },
+]) {
+  for (const theme of ['light', 'dark']) {
+    test(`健康內容先於建議及可收合狀態：${size.name} ${theme}`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await mockAuthenticatedHealth(page);
+      await page.clock.setFixedTime(new Date('2030-01-30T12:00:00Z'));
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: themeKey, value: theme });
+      await page.goto('/');
+      for (const view of [
+        { label: '今日', name: 'today', metrics: '.stats-strip', advice: '.action-panel', chart: '.progress-list' },
+        { label: '每週', name: 'weekly', metrics: '.weekly-metrics', advice: '.insight-band', chart: '.chart-grid' },
+        { label: '每月', name: 'monthly', metrics: '[aria-label="本月活動與習慣"]', advice: '.summary-panel', chart: '[aria-labelledby="monthly-chart-title"]' },
+      ]) {
+        await navigateTo(page, view.label);
+        await expect(page.locator(view.metrics)).toBeVisible();
+        await expect(page.locator(view.advice)).toBeVisible();
+        const disclosure = page.locator('.system-status-disclosure');
+        await expect(disclosure).not.toHaveAttribute('open');
+        const positions = await page.evaluate(({ metrics, advice, chart }) => {
+          const bounds = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+          return { metricBottom: bounds(metrics).bottom, chartBottom: bounds(chart).bottom, adviceTop: bounds(advice).top, adviceBottom: bounds(advice).bottom, statusTop: bounds('.system-status-disclosure').top };
+        }, view);
+        expect(positions.metricBottom).toBeLessThanOrEqual(positions.adviceTop);
+        expect(positions.chartBottom).toBeLessThanOrEqual(positions.adviceTop);
+        expect(positions.adviceBottom).toBeLessThanOrEqual(positions.statusTop);
+        await disclosure.locator('summary').focus();
+        await page.keyboard.press('Enter');
+        await expect(page.getByText('私人 Apple Health 資料')).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+        await page.keyboard.press('Enter');
+        await expect(disclosure).not.toHaveAttribute('open');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+        if (view.name !== 'today') {
+          await expect(page.locator('.recharts-surface').first()).toBeVisible();
+          await expect(page.locator('.recharts-line-curve, .recharts-area-curve').first()).toHaveAttribute('d', /[1-9]/);
+        }
+        // Label captured fixtures so screenshots cannot be mistaken for private live data.
+        await page.evaluate(() => {
+          let label = document.getElementById('qa-fixture-label');
+          if (!label) { label = document.createElement('div'); label.id = 'qa-fixture-label'; document.body.prepend(label); }
+          label.textContent = '版面驗證 · 合成測試資料 · 非真實健康紀錄';
+          label.style.cssText = 'background:#ffdf80;color:#302500;padding:8px;text-align:center;font:14px sans-serif;position:relative;z-index:100';
+        });
+        await page.screenshot({ path: testInfo.outputPath(`${size.name}-${view.name}-${theme}.png`), fullPage: true });
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
+test('資料失敗時底部狀態自動展開，重試成功後可收合', async ({ page }) => {
+  await mockAuthenticatedHealth(page);
+  let attempts = 0;
+  await page.route('**/api/private/health', async (route) => {
+    attempts += 1;
+    await route.fulfill({ status: attempts === 1 ? 500 : 200, contentType: 'application/json', body: JSON.stringify(attempts === 1 ? { error: '暫時無法載入' } : { days: privateHealthDays }) });
+  });
+  await page.goto('/');
+  await expect(page.locator('.system-status-disclosure')).toHaveAttribute('open');
+  await expect(page.getByText('私人健康資料暫時未能載入')).toBeVisible();
+  await page.getByRole('button', { name: '重試', exact: true }).click();
+  await expect(page.getByLabel(/今日健康總分/)).toBeVisible();
+  await expect(page.locator('.system-status-disclosure')).not.toHaveAttribute('open');
 });
