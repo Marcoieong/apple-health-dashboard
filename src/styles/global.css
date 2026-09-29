@@ -1053,3 +1053,312 @@ textarea { min-height: 110px; padding-block: 12px; resize: vertical; }
 .system-status-disclosure > .health-sync-status {
   margin: 0 16px 16px;
 }
+
+.wellness-insight-panel {
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line));
+  border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--teal-soft) 62%, var(--surface)), var(--surface));
+  box-shadow: var(--shadow);
+}
+.wellness-insight-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+}
+.wellness-insight-heading h2 { margin: 0; font-size: clamp(1.18rem, 2vw, 1.45rem); }
+.wellness-insight-heading .eyebrow { margin-bottom: 4px; }
+.wellness-insight-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--teal-dark);
+  background: var(--surface);
+}
+.quality-pill {
+  min-height: 27px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: var(--surface);
+  font-size: .72rem;
+  font-weight: 740;
+  white-space: nowrap;
+  gap: 5px;
+}
+.quality-insufficient { color: var(--coral); background: var(--coral-soft); }
+.wellness-insight-summary { margin: 14px 0 0; color: var(--muted); line-height: 1.65; }
+.chatgpt-health-actions {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+.chatgpt-health-link {
+  min-height: 46px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--teal-dark);
+  color: #fff;
+  font-weight: 760;
+  text-decoration: none;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--teal-dark) 22%, transparent);
+}
+.chatgpt-health-link:hover { filter: brightness(1.05); }
+.chatgpt-health-link:focus-visible { outline: 3px solid color-mix(in srgb, var(--teal) 55%, white); outline-offset: 3px; }
+.chatgpt-health-actions > span { color: var(--muted); font-size: .73rem; line-height: 1.45; }
+.chatgpt-health-hint { margin: 11px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.55; }
+.chatgpt-health-hint strong { color: var(--ink); }
+.wellness-role-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.wellness-role-grid > div {
+  min-width: 0;
+  padding: 13px 14px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+}
+.wellness-role-grid strong { font-size: .82rem; }
+.wellness-role-grid span { color: var(--muted); font-size: .76rem; line-height: 1.5; }
+.chatgpt-advice-import {
+  min-width: 0;
+  margin-top: 16px;
+}
+.chatgpt-advice-import-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.chatgpt-advice-import-heading > svg { flex: 0 0 auto; margin-top: 2px; color: var(--teal-dark); }
+.chatgpt-advice-import-heading h3 { margin: 0; font-size: .96rem; }
+.chatgpt-advice-import-heading p,
+.chatgpt-advice-disclosure,
+.chatgpt-advice-loading,
+.chatgpt-advice-empty {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.55;
+}
+.chatgpt-advice-import form { margin-top: 12px; }
+.chatgpt-advice-import label { display: block; margin-bottom: 7px; font-size: .79rem; font-weight: 720; }
+.chatgpt-advice-import textarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.55;
+}
+.chatgpt-advice-import textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--teal) 34%, transparent);
+  border-color: var(--teal);
+}
+.chatgpt-advice-import-controls {
+  margin-top: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chatgpt-advice-import-controls small { color: var(--muted); }
+.chatgpt-advice-import-controls .primary-button { min-height: 42px; display: inline-flex; align-items: center; gap: 7px; }
+.chatgpt-advice-disclosure {
+  margin-top: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+}
+.inline-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--coral) 32%, var(--line));
+  border-radius: 10px;
+  color: var(--coral);
+  background: var(--coral-soft);
+  font-size: .78rem;
+}
+.inline-error button { border: 0; color: inherit; background: transparent; cursor: pointer; font: inherit; font-weight: 750; }
+.chatgpt-advice-list { margin-top: 12px; display: grid; gap: 10px; }
+.chatgpt-advice-list article {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.chatgpt-advice-list article.is-latest {
+  border-color: color-mix(in srgb, var(--teal) 34%, var(--line));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--teal-dark) 7%, transparent);
+}
+.chatgpt-advice-meta { display: flex; justify-content: space-between; gap: 12px; }
+.chatgpt-advice-list strong { font-size: .75rem; color: var(--teal-dark); }
+.chatgpt-advice-meta strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.chatgpt-advice-latest-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.6rem;
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  font-size: .7rem;
+  letter-spacing: .02em;
+}
+.chatgpt-advice-list time { color: var(--muted); font-size: .7rem; }
+.chatgpt-advice-organised {
+  margin-top: 12px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--teal-soft) 68%, var(--surface));
+}
+.chatgpt-advice-organised > span {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: color-mix(in srgb, var(--teal) 13%, transparent);
+  font-size: .67rem;
+  font-weight: 780;
+  letter-spacing: .03em;
+}
+.chatgpt-advice-organised section { margin-top: 12px; }
+.chatgpt-advice-organised h4 { margin: 0 0 6px; font-size: .79rem; }
+.chatgpt-advice-organised ul,
+.chatgpt-advice-organised ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--ink);
+}
+.chatgpt-advice-organised li { margin-top: 5px; line-height: 1.55; }
+.chatgpt-advice-original { margin-top: 10px; }
+.chatgpt-advice-original summary {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: .74rem;
+  font-weight: 700;
+}
+.chatgpt-advice-original p {
+  margin: 9px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.chatgpt-health-about,
+.chatgpt-advice-history,
+.chatgpt-advice-manual,
+.chatgpt-advice-notes {
+  margin-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--teal) 16%, var(--line));
+}
+.chatgpt-health-about > summary,
+.chatgpt-advice-history > summary,
+.chatgpt-advice-manual > summary,
+.chatgpt-advice-notes > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--teal-dark);
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 740;
+  list-style-position: inside;
+}
+.chatgpt-health-about > summary:focus-visible,
+.chatgpt-advice-history > summary:focus-visible,
+.chatgpt-advice-manual > summary:focus-visible,
+.chatgpt-advice-notes > summary:focus-visible,
+.chatgpt-advice-original summary:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid color-mix(in srgb, var(--teal) 32%, transparent);
+  outline-offset: 2px;
+}
+.chatgpt-health-about[open] > summary,
+.chatgpt-advice-history[open] > summary,
+.chatgpt-advice-manual[open] > summary,
+.chatgpt-advice-notes[open] > summary {
+  margin-bottom: 8px;
+}
+.chatgpt-advice-history > div {
+  display: grid;
+  gap: 10px;
+}
+.chatgpt-advice-history .chatgpt-advice-list { margin-top: 0; }
+.chatgpt-advice-notes .chatgpt-advice-disclosure { margin-bottom: 2px; }
+.text-button.danger { color: var(--coral); }
+.wellness-insight-columns {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 28px;
+}
+.wellness-insight-columns h3 { margin-bottom: 9px; font-size: .88rem; }
+.wellness-insight-columns ul { margin: 0; padding-left: 1.15rem; color: var(--muted); }
+.wellness-insight-columns li { margin-top: 6px; line-height: 1.55; }
+.wellness-insight-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--teal) 18%, var(--line));
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+.wellness-insight-footer span:first-child { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .wellness-insight-panel { padding: 17px; border-radius: 16px; }
+  .wellness-insight-heading { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .wellness-insight-heading .quality-pill { grid-column: 2; justify-self: start; }
+  .wellness-insight-columns { grid-template-columns: 1fr; gap: 13px; }
+  .wellness-role-grid { grid-template-columns: 1fr; }
+  .chatgpt-health-actions { align-items: stretch; flex-direction: column; }
+  .chatgpt-health-link { width: 100%; }
+  .chatgpt-advice-import-controls { align-items: stretch; flex-direction: column; }
+  .chatgpt-advice-import-controls .primary-button { width: 100%; justify-content: center; }
+  .chatgpt-advice-meta { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .chatgpt-advice-organised { padding: 12px; }
+  .chatgpt-health-about > summary,
+  .chatgpt-advice-history > summary,
+  .chatgpt-advice-manual > summary,
+  .chatgpt-advice-notes > summary { font-size: .79rem; }
+  .wellness-insight-footer { align-items: flex-start; flex-direction: column; }
+}

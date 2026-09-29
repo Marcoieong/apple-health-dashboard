@@ -1,3 +1,4 @@
+import { ChatGPTHealthPanel } from './components/ChatGPTHealthPanel';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AppShell, type AppView } from './components/AppShell';
 import { EmptyState } from './components/EmptyState';
@@ -189,6 +190,7 @@ export default function App() {
       {view !== 'food-journal' && view !== 'family-board' && isFamilyMember ? (
         <div className="page-stack">
           {resolvedContent}
+          <ChatGPTHealthPanel view={view} />
           <details
             className="system-status-disclosure"
             open={privateHealth.status === 'loading' || privateHealth.status === 'error'}
