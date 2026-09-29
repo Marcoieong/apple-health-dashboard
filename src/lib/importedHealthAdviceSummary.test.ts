@@ -33,6 +33,11 @@ describe('summarizeImportedHealthAdvice', () => {
     expect(result.cautions).toEqual([]);
   });
 
+  it('recognises the summary heading without displaying it as advice', () => {
+    expect(summarizeImportedHealthAdvice('## 重點摘要\n睡眠資料尚未齊全。').summary)
+      .toEqual(['睡眠資料尚未齊全。']);
+  });
+
   it('returns empty groups for blank input', () => {
     expect(summarizeImportedHealthAdvice('  \n')).toEqual({
       summary: [],

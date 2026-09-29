@@ -7,7 +7,7 @@ export interface ImportedHealthAdviceSummary {
 type AdviceSection = keyof ImportedHealthAdviceSummary;
 
 const sectionHeadings: Record<AdviceSection, RegExp> = {
-  summary: /^(?:總結|摘要|重點|分析|觀察|健康概況|主要發現)$/u,
+  summary: /^(?:總結|摘要|重點摘要|重點|分析|觀察|健康概況|主要發現)$/u,
   actions: /^(?:建議|行動|行動建議|今日建議|今天可做|下一步|改善建議)$/u,
   cautions: /^(?:注意|注意事項|安全提醒|警告|何時求助|就醫提醒)$/u
 };
