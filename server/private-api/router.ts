@@ -1,3 +1,4 @@
+import { createImportedHealthAdvice, createImportedHealthAdviceSchema, deleteImportedHealthAdvice, deleteImportedHealthAdviceSchema, listImportedHealthAdvice, loadImportedHealthAdviceConfig } from '../imported-health-advice/index.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { get } from '@vercel/blob';
 import {
@@ -183,6 +184,81 @@ const healthSyncStatusHandler: PrivateRouteHandler = async (request, response) =
   }
 };
 
+const chatGptHealthAdviceHandler: PrivateRouteHandler = async (
+  request,
+  response
+) => {
+  response.setHeader('Cache-Control', 'private, no-store');
+  if (!['GET', 'POST', 'DELETE'].includes(request.method ?? '')) {
+    response.setHeader('Allow', 'GET, POST, DELETE');
+    response.status(405).json({ error: 'method_not_allowed' });
+    return;
+  }
+
+  try {
+    const { config: familyConfig, session } = await requireFamilySession(request);
+    const config = loadImportedHealthAdviceConfig();
+
+    if (request.method === 'GET') {
+      response.status(200).json({
+        advice: await listImportedHealthAdvice(session.ownerId, config)
+      });
+      return;
+    }
+
+    assertSameOriginJsonMutation(request, familyConfig);
+    if (request.method === 'POST') {
+      const input = createImportedHealthAdviceSchema.safeParse(request.body);
+      if (!input.success) {
+        response.status(400).json({ error: 'invalid_input' });
+        return;
+      }
+      response.status(201).json({
+        advice: [
+          await createImportedHealthAdvice(
+            session.ownerId,
+            input.data.content,
+            config
+          )
+        ]
+      });
+      return;
+    }
+
+    const input = deleteImportedHealthAdviceSchema.safeParse(request.body);
+    if (!input.success) {
+      response.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    if (
+      !(await deleteImportedHealthAdvice(
+        session.ownerId,
+        input.data.id,
+        config
+      ))
+    ) {
+      response.status(404).json({ error: 'not_found' });
+      return;
+    }
+    response.status(200).json({ deleted: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message === 'unauthorized') {
+      response.status(401).json({ error: 'unauthorized' });
+      return;
+    }
+    if (message === 'forbidden') {
+      response.status(403).json({ error: 'forbidden' });
+      return;
+    }
+    if (message === 'invalid_content_type') {
+      response.status(415).json({ error: 'invalid_content_type' });
+      return;
+    }
+    response.status(503).json({ error: 'service_unavailable' });
+  }
+};
+
 const mealsHandler: PrivateRouteHandler = async (request, response) => {
   response.setHeader('Cache-Control', 'private, no-store');
   if (request.method !== 'GET') {
@@ -354,6 +430,7 @@ const ROUTES: Readonly<Record<string, PrivateRouteHandler>> = {
   'health-devices': healthDevicesHandler,
   health: healthHandler,
   'health/sync-status': healthSyncStatusHandler,
+  'chatgpt-health-advice': chatGptHealthAdviceHandler,
   meals: mealsHandler,
   photo: photoHandler,
   'shortcut-credentials': shortcutCredentialsHandler
